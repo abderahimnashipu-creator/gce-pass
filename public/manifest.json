@@ -1,0 +1,16 @@
+{
+  "name": "GCE Pass Cameroon",
+  "short_name": "GCE Pass",
+  "description": "Cameroon GCE Past Questions & Verified Static Answers",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
