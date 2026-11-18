@@ -23,7 +23,8 @@ Output ONLY valid JSON array.`;
 
     const imageParts = images.map((url: string) => {
       const [meta, data] = url.split(',');
-      return { inlineData: { data, mimeType: meta.match(/:(.*?);/)?. || 'image/jpeg' } };
+      const mimeType = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      return { inlineData: { data, mimeType } };
     });
 
     const models = ['gemini-2.5-flash-lite', 'gemini-flash-latest'];
