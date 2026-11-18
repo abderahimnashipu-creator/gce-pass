@@ -6,64 +6,44 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     const { images, paperNumber, subjectName, year } = await req.json();
-
-    if (!images || !Array.isArray(images) || images.length === 0) {
-      return NextResponse.json(
-        { error: 'Please upload at least one snapped page photo.' },
-        { status: 400 }
-      );
-    }
+    if (!images?.length) return NextResponse.json({ error: 'Upload at least 1 photo.' }, { status: 400 });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3.8-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     const isMcq = Number(paperNumber) === 1;
 
     const prompt = `You are an expert Cameroon GCE Board examiner for ${subjectName} (${year}, Paper ${paperNumber}).
-Analyze the attached snapped photos of the past question paper (and any marking guide pages if included).
-
 FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5).
-
-Extract ALL questions in exact numerical order and return a JSON array of objects with these exact keys:
+Extract ALL questions in numerical order and return a JSON array with keys:
 - "question_number": integer
 - "question_text": string
-${
-  isMcq
-    ? `- "option_a": string
-- "option_b": string
-- "option_c": string
-- "option_d": string
-- "static_correct_answer": string (strictly one uppercase letter: "A", "B", "C", or "D")
-- "static_explanation": string (clear step-by-step explanation showing why the correct option is right, using clean Unicode symbols and plain units)`
-    : `- "option_a": null
-- "option_b": null
-- "option_c": null
-- "option_d": null
-- "static_correct_answer": string (complete, accurate GCE marking-guide-standard final answer)
-- "static_explanation": string (detailed step-by-step working, formulas, and explanations using clean Unicode symbols and plain units)`
-}
+${isMcq
+  ? `- "option_a": string\n- "option_b": string\n- "option_c": string\n- "option_d": string\n- "static_correct_answer": "A"|"B"|"C"|"D"\n- "static_explanation": string`
+  : `- "option_a": null\n- "option_b": null\n- "option_c": null\n- "option_d": null\n- "static_correct_answer": string\n- "static_explanation": string`}
+Output ONLY valid JSON array.`;
 
-Strictly output ONLY valid JSON array.`;
-
-    const imageParts = images.map((base64DataUrl: string) => {
-      const [meta, data] = base64DataUrl.split(',');
-      const mimeType = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
-      return { inlineData: { data, mimeType } };
+    const imageParts = images.map((url: string) => {
+      const [meta, data] = url.split(',');
+      return { inlineData: { data, mimeType: meta.match(/:(.*?);/)?. || 'image/jpeg' } };
     });
 
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const questions = JSON.parse(result.response.text());
+    const models = ['gemini-2.5-flash-lite', 'gemini-flash-latest'];
+    let lastErr: any;
 
-    return NextResponse.json({ questions });
+    for (const modelName of models) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { responseMimeType: 'application/json' },
+        });
+        const result = await model.generateContent([prompt, ...imageParts]);
+        return NextResponse.json({ questions: JSON.parse(result.response.text()) });
+      } catch (e: any) {
+        lastErr = e;
+      }
+    }
+
+    return NextResponse.json({ error: lastErr?.message || 'AI busy, retry in 10s.' }, { status: 503 });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || 'AI extraction failed. Try clearer photos.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || 'Extraction failed.' }, { status: 500 });
   }
 }
