@@ -229,11 +229,12 @@ export default function AdminUploadPage() {
       {questions.length > 0 && (
         <AdminQuestionEditor
           questions={questions}
-          onChange={setQuestions}
+          setQuestions={setQuestions}
+          paperNumber={paperNumber}
           onPublish={handlePublish}
           publishing={publishing}
         />
       )}
     </div>
   );
-  }
+}
