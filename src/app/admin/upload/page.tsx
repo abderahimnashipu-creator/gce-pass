@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AdminQuestionEditor from '@/components/AdminQuestionEditor';
-import { Camera, Sparkles, ArrowLeft } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function AdminUploadPage() {
   const router = useRouter();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [user, setUser] = useState<any>(null);
 
   const [eduTypes, setEduTypes] = useState<any[]>([]);
@@ -171,12 +173,46 @@ export default function AdminUploadPage() {
           </select>
         </div>
 
-        <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/60 p-6 cursor-pointer hover:border-green-500">
-          <Camera className="w-8 h-8 text-green-400 mb-2" />
-          <span className="text-xs font-bold text-white">Tap to Snap Photos or Pick Paper Pages</span>
-          <span className="text-[11px] text-slate-400 mt-1">{images.length} page(s) selected</span>
-          <input type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={(e) => handlePhotos(e.target.files)} />
-        </label>
+        <div className="rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/60 p-5 space-y-3 text-center">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex flex-col items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 p-4 text-white"
+            >
+              <Camera className="w-7 h-7 text-green-400 mb-1.5" />
+              <span className="text-xs font-bold">Snap Camera</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="flex flex-col items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 p-4 text-white"
+            >
+              <ImageIcon className="w-7 h-7 text-sky-400 mb-1.5" />
+              <span className="text-xs font-bold">Pick Gallery</span>
+            </button>
+          </div>
+
+          <span className="block text-[11px] text-slate-400">{images.length} page(s) selected</span>
+
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={(e) => handlePhotos(e.target.files)}
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) => handlePhotos(e.target.files)}
+          />
+        </div>
 
         {images.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-2">
@@ -193,24 +229,25 @@ export default function AdminUploadPage() {
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 font-bold text-sm text-slate-950 disabled:opacity-50"
         >
           <Sparkles className="w-4 h-4" />
-          {extracting ? 'AI Reading & Solving Pages...' : 'Extract & Solve with Gemini AI'}
+          {extracting ? 'Extracting & Solving with Gemini AI...' : 'Extract & Solve with Gemini AI'}
         </button>
 
         {message && (
-          <div className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-xs text-green-300">
+          <p className="text-xs font-semibold text-center text-amber-300 bg-slate-800/80 rounded-xl p-3">
             {message}
-          </div>
+          </p>
         )}
       </div>
 
-      <AdminQuestionEditor
-        questions={questions}
-        setQuestions={setQuestions}
-        paperNumber={paperNumber}
-        onPublish={handlePublish}
-        publishing={publishing}
-      />
+      {questions.length > 0 && (
+        <AdminQuestionEditor
+          questions={questions}
+          onChange={setQuestions}
+          onPublish={handlePublish}
+          publishing={publishing}
+        />
+      )}
     </div>
   );
-        }
-      
+          }
+              
