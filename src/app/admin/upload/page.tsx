@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AdminQuestionEditor from '@/components/AdminQuestionEditor';
@@ -8,8 +8,6 @@ import { Camera, Image as ImageIcon, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function AdminUploadPage() {
   const router = useRouter();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [user, setUser] = useState<any>(null);
 
   const [eduTypes, setEduTypes] = useState<any[]>([]);
@@ -175,43 +173,32 @@ export default function AdminUploadPage() {
 
         <div className="rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/60 p-5 space-y-3 text-center">
           <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="flex flex-col items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 p-4 text-white"
-            >
+            <label className="relative flex flex-col items-center justify-center rounded-xl bg-slate-800 active:bg-slate-700 border border-slate-600 p-4 text-white overflow-hidden">
               <Camera className="w-7 h-7 text-green-400 mb-1.5" />
               <span className="text-xs font-bold">Snap Camera</span>
-            </button>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={(e) => handlePhotos(e.target.files)}
+              />
+            </label>
 
-            <button
-              type="button"
-              onClick={() => galleryInputRef.current?.click()}
-              className="flex flex-col items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 p-4 text-white"
-            >
+            <label className="relative flex flex-col items-center justify-center rounded-xl bg-slate-800 active:bg-slate-700 border border-slate-600 p-4 text-white overflow-hidden">
               <ImageIcon className="w-7 h-7 text-sky-400 mb-1.5" />
               <span className="text-xs font-bold">Pick Gallery</span>
-            </button>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={(e) => handlePhotos(e.target.files)}
+              />
+            </label>
           </div>
 
           <span className="block text-[11px] text-slate-400">{images.length} page(s) selected</span>
-
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={(e) => handlePhotos(e.target.files)}
-          />
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            style={{ display: 'none' }}
-            onChange={(e) => handlePhotos(e.target.files)}
-          />
         </div>
 
         {images.length > 0 && (
@@ -249,5 +236,4 @@ export default function AdminUploadPage() {
       )}
     </div>
   );
-          }
-              
+  }
