@@ -12,9 +12,9 @@ export async function POST(req: Request) {
     const isMcq = Number(paperNumber) === 1;
 
     const prompt = `You are an expert Cameroon GCE Board examiner for ${subjectName} (${year}, Paper ${paperNumber}).
-FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5). Keep each static_explanation clear and concise (1-2 sentences).
-${previousContext ? `CONTEXT FROM PREVIOUS PAGE (use if questions refer to a passage, table, or instructions on the prior page):\n${previousContext}\n` : ''}
-Extract ALL questions shown on the attached page(s) in numerical order and return a JSON array with keys:
+FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5). Keep each static_explanation ultra-brief (1 short sentence, max 15 words).
+${previousContext ? `CONTEXT FROM PREVIOUS PAGE:\n${previousContext}\n` : ''}
+Extract ALL questions on the attached page in numerical order and return a JSON array with keys:
 - "question_number": integer
 - "question_text": string
 ${isMcq
@@ -42,4 +42,4 @@ Output ONLY valid JSON array.`;
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Extraction failed.' }, { status: 500 });
   }
-}
+      }
