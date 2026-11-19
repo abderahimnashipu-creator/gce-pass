@@ -67,21 +67,31 @@ export default function AdminUploadPage() {
     setImages((p) => [...p, ...out]);
   }
 
-  async function handleExtract() {
+    async function handleExtract() {
     if (!images.length || !subjectName) return setMessage('Enter Subject Name and select at least 1 photo.');
     setExtracting(true); setMessage(null);
+    const allQuestions: any[] = [];
+    let previousContext = '';
     try {
-      const res = await fetch('/api/admin/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images, paperNumber, subjectName, year }),
-      });
-      const data = await res.json();
-      if (!res.ok) setMessage(data.error || 'Extraction failed.');
-      else setQuestions(data.questions || []);
-    } catch { setMessage('Network error during extraction. Try 1–2 pages.'); }
+      for (let i = 0; i < images.length; i++) {
+        setMessage(`Extracting page ${i + 1} of ${images.length}...`);
+        const res = await fetch('/api/admin/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images: [images[i]], paperNumber, subjectName, year, previousContext }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setMessage(`Page ${i + 1}: ${data.error || 'Extraction failed.'}`); return; }
+        const pageQs = data.questions || [];
+        allQuestions.push(...pageQs);
+        previousContext = pageQs.slice(-3).map((q: any) => `Q${q.question_number}: ${q.question_text}`).join('\n');
+      }
+      setQuestions(allQuestions);
+      setMessage(`Extracted ${allQuestions.length} questions across ${images.length} page(s)!`);
+    } catch { setMessage('Network error during extraction. Check connection and retry.'); }
     finally { setExtracting(false); }
   }
+
 
   async function handlePublish() {
     setPublishing(true); setMessage(null);
