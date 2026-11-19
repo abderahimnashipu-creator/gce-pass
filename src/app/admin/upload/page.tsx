@@ -165,18 +165,23 @@ export default function AdminUploadPage() {
       setMessage('Tap inside the box below, paste manually, then tap Load Box.');
     }
 }
-      async function handlePublish() {
+        async function handlePublish() {
     setPublishing(true); setMessage(null);
     try {
-      let activeDeptId = deptId;
-      if (!activeDeptId && newDeptName.trim() && levelId) {
-        const { data } = await supabase.from('departments').insert({ level_id: levelId, name: newDeptName.trim() }).select('id').single();
-        if (data) activeDeptId = data.id;
-      }
       const res = await fetch('/api/admin/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user.id, departmentId: activeDeptId, subjectName, subjectCode, year, paperNumber, questions }),
+        body: JSON.stringify({
+          adminUserId: user.id,
+          levelId,
+          departmentId: deptId,
+          newDeptName: newDeptName.trim(),
+          subjectName,
+          subjectCode,
+          year,
+          paperNumber,
+          questions,
+        }),
       });
       const data = await res.json();
       if (!res.ok) setMessage(data.error || 'Publish failed.');
@@ -189,6 +194,7 @@ export default function AdminUploadPage() {
     } catch { setMessage('Publish network error.'); }
     finally { setPublishing(false); }
   }
+
 
   if (!user) return null;
 
