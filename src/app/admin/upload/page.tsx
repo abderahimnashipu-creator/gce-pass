@@ -128,15 +128,23 @@ export default function AdminUploadPage() {
         setMessage('No questions found inside JSON.');
         return;
       }
-      const normalized = list.map((q: any, idx: number) => ({
-        question_number: Number(q.question_number ?? idx + 1),
-        question_text: String(q.question_text ?? ''),
-        options: normalizeOptions(q.options),
-        static_correct_answer: String(q.static_correct_answer ?? '').trim().toUpperCase(),
-        static_explanation: String(q.static_explanation ?? ''),
-        diagram_url: q.diagram_url || '',
-        has_diagram: Boolean(q.has_diagram || q.diagram_url),
-      }));
+            const normalized = list.map((q: any, idx: number) => {
+        const opts = normalizeOptions(q.options);
+        return {
+          question_number: Number(q.question_number ?? idx + 1),
+          question_text: String(q.question_text ?? ''),
+          options: opts,
+          option_a: opts.A,
+          option_b: opts.B,
+          option_c: opts.C,
+          option_d: opts.D,
+          static_correct_answer: String(q.static_correct_answer ?? '').trim().toUpperCase(),
+          static_explanation: String(q.static_explanation ?? ''),
+          diagram_url: q.diagram_url || '',
+          has_diagram: Boolean(q.has_diagram || q.diagram_url),
+        };
+      });
+
       const base = append ? questions : [];
       const map = new Map<number, any>();
       [...base, ...normalized].forEach((item) => map.set(item.question_number, item));
