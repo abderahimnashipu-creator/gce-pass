@@ -29,8 +29,8 @@ Output ONLY valid JSON array.`;
       return { inlineData: { data, mimeType } };
     });
 
-    const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest'];
-    let lastErr: any;
+    const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+    const errors: string[] = [];
 
     for (const modelName of models) {
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -42,17 +42,15 @@ Output ONLY valid JSON array.`;
           const result = await model.generateContent([prompt, ...imageParts]);
           return NextResponse.json({ questions: JSON.parse(result.response.text()) });
         } catch (e: any) {
-          lastErr = e;
-          const msg = String(e?.message || '');
-          // If quota exceeded (429), immediately try next model bucket
-          if (msg.includes('429') || msg.includes('quota')) break;
-          // If temporary 503 overload, wait 2.5s and retry once
-          if (attempt === 1) await sleep(2500);
+          const msg = String(e?.message || 'Unknown error');
+          errors.push(`${modelName} (try ${attempt}): ${msg.slice(0, 140)}`);
+          if (msg.includes('429') || msg.includes('quota') || msg.includes('404')) break;
+          if (attempt === 1) await sleep(2000);
         }
       }
     }
 
-    return NextResponse.json({ error: lastErr?.message || 'AI busy, retry in 10s.' }, { status: 503 });
+    return NextResponse.json({ error: errors.join(' | ') }, { status: 503 });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Extraction failed.' }, { status: 500 });
   }
