@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import AdminQuestionEditor from '@/components/AdminQuestionEditor';
-import { Camera, Image as ImageIcon, Sparkles, ArrowLeft, Trash2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, ArrowLeft, Trash2, ClipboardPaste, CheckCircle2 } from 'lucide-react';
 
 const shrink = (file: File): Promise<string> =>
   new Promise((res) => {
@@ -39,6 +39,7 @@ export default function AdminUploadPage() {
   const [year, setYear] = useState('2024');
   const [paperNumber, setPaperNumber] = useState(1);
   const [images, setImages] = useState<string[]>([]);
+  const [jsonInput, setJsonInput] = useState('');
   const [questions, setQuestions] = useState<any[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -67,7 +68,7 @@ export default function AdminUploadPage() {
     setImages((p) => [...p, ...out]);
   }
 
-    async function handleExtract() {
+  async function handleExtract() {
     if (!images.length || !subjectName) return setMessage('Enter Subject Name and select at least 1 photo.');
     setExtracting(true); setMessage(null);
     const allQuestions: any[] = [];
@@ -92,8 +93,46 @@ export default function AdminUploadPage() {
     finally { setExtracting(false); }
   }
 
+  function parseAndLoadJson(rawText: string) {
+    setMessage(null);
+    try {
+      const start = rawText.indexOf('[');
+      const end = rawText.lastIndexOf(']');
+      if (start === -1 || end === -1 || end <= start) {
+        setMessage('Invalid JSON: copy the full [...] list from Gemini chat.');
+        return;
+      }
+      const list = JSON.parse(rawText.slice(start, end + 1));
+      if (!Array.isArray(list) || list.length === 0) {
+        setMessage('No questions found inside JSON.');
+        return;
+      }
+      const normalized = list.map((q: any, idx: number) => ({
+        question_number: Number(q.question_number ?? idx + 1),
+        question_text: String(q.question_text ?? ''),
+        options: Array.isArray(q.options) ? q.options.map(String) : [],
+        static_correct_answer: String(q.static_correct_answer ?? '').trim(),
+        static_explanation: String(q.static_explanation ?? ''),
+        diagram_url: q.diagram_url || '',
+        has_diagram: Boolean(q.has_diagram || q.diagram_url),
+      }));
+      setQuestions(normalized);
+      setMessage(`Loaded ${normalized.length} questions! Review below and tap Publish.`);
+    } catch {
+      setMessage('Could not read JSON. Make sure you copied the entire JSON block cleanly.');
+    }
+  }
 
-  async function handlePublish() {
+  async function handleClipboardPaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      setJsonInput(text);
+      parseAndLoadJson(text);
+    } catch {
+      setMessage('Tap inside the box below, paste manually, then tap Load Pasted Text.');
+    }
+  }
+    async function handlePublish() {
     setPublishing(true); setMessage(null);
     try {
       let activeDeptId = deptId;
@@ -108,7 +147,12 @@ export default function AdminUploadPage() {
       });
       const data = await res.json();
       if (!res.ok) setMessage(data.error || 'Publish failed.');
-      else { setMessage('Success! Paper is now live.'); setQuestions([]); setImages([]); }
+      else {
+        setMessage('Success! Paper is now live.');
+        setQuestions([]);
+        setImages([]);
+        setJsonInput('');
+      }
     } catch { setMessage('Publish network error.'); }
     finally { setPublishing(false); }
   }
@@ -147,7 +191,36 @@ export default function AdminUploadPage() {
           </select>
         </div>
 
+        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-emerald-300">Option 1: Paste JSON from Gemini Chat (100% Free)</span>
+            {jsonInput && (
+              <button type="button" onClick={() => setJsonInput('')} className="text-[11px] text-red-400 flex items-center gap-1">
+                <Trash2 className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={handleClipboardPaste} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">
+              <ClipboardPaste className="w-4 h-4" />
+              1-Tap Paste & Load
+            </button>
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              Load Pasted Text
+            </button>
+          </div>
+          <textarea
+            rows={3}
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            placeholder="Or long-press here to paste the JSON array from Gemini chat..."
+            className="w-full rounded-xl bg-slate-950 border border-slate-700 p-3 text-xs font-mono text-slate-200"
+          />
+        </div>
+
         <div className="rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/60 p-5 space-y-3 text-center">
+          <p className="text-xs font-semibold text-slate-400">Option 2: Direct Gemini API Photo Upload</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="relative flex flex-col items-center justify-center rounded-xl bg-slate-800 border border-slate-600 p-4 text-white overflow-hidden">
               <Camera className="w-7 h-7 text-green-400 mb-1" />
@@ -178,5 +251,4 @@ export default function AdminUploadPage() {
       {questions.length > 0 && <AdminQuestionEditor questions={questions} setQuestions={setQuestions} paperNumber={paperNumber} onPublish={handlePublish} publishing={publishing} />}
     </div>
   );
-          }
-    
+}
