@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export async function POST(req: Request) {
   try {
     const { images, paperNumber, subjectName, year } = await req.json();
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
     const isMcq = Number(paperNumber) === 1;
 
     const prompt = `You are an expert Cameroon GCE Board examiner for ${subjectName} (${year}, Paper ${paperNumber}).
-FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5).
+FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5). Keep each static_explanation clear and concise (1-2 sentences).
 Extract ALL questions in numerical order and return a JSON array with keys:
 - "question_number": integer
 - "question_text": string
@@ -27,19 +29,26 @@ Output ONLY valid JSON array.`;
       return { inlineData: { data, mimeType } };
     });
 
-    const models = ['gemini-2.5-flash-lite', 'gemini-flash-latest'];
+    const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest'];
     let lastErr: any;
 
     for (const modelName of models) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: { responseMimeType: 'application/json' },
-        });
-        const result = await model.generateContent([prompt, ...imageParts]);
-        return NextResponse.json({ questions: JSON.parse(result.response.text()) });
-      } catch (e: any) {
-        lastErr = e;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: { responseMimeType: 'application/json' },
+          });
+          const result = await model.generateContent([prompt, ...imageParts]);
+          return NextResponse.json({ questions: JSON.parse(result.response.text()) });
+        } catch (e: any) {
+          lastErr = e;
+          const msg = String(e?.message || '');
+          // If quota exceeded (429), immediately try next model bucket
+          if (msg.includes('429') || msg.includes('quota')) break;
+          // If temporary 503 overload, wait 2.5s and retry once
+          if (attempt === 1) await sleep(2500);
+        }
       }
     }
 
