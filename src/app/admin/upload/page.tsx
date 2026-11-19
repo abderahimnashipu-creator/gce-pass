@@ -93,16 +93,31 @@ export default function AdminUploadPage() {
     finally { setExtracting(false); }
   }
 
-  function parseAndLoadJson(rawText: string) {
+  function normalizeOptions(rawOpts: any) {
+    if (!rawOpts) return { A: '', B: '', C: '', D: '' };
+    if (Array.isArray(rawOpts)) {
+      const strip = (s: any) => String(s ?? '').replace(/^[A-Da-d][\.\)\:\-]\s*/, '').trim();
+      return { A: strip(rawOpts[0]), B: strip(rawOpts[1]), C: strip(rawOpts[2]), D: strip(rawOpts[3]) };
+    }
+    return {
+      A: String(rawOpts.A ?? rawOpts.a ?? ''),
+      B: String(rawOpts.B ?? rawOpts.b ?? ''),
+      C: String(rawOpts.C ?? rawOpts.c ?? ''),
+      D: String(rawOpts.D ?? rawOpts.d ?? ''),
+    };
+  }
+
+  function parseAndLoadJson(rawText: string, append = false) {
     setMessage(null);
     try {
-      const start = rawText.indexOf('[');
-      const end = rawText.lastIndexOf(']');
+      const fixed = rawText.replace(/\]\s*\[/g, ',');
+      const start = fixed.indexOf('[');
+      const end = fixed.lastIndexOf(']');
       if (start === -1 || end === -1 || end <= start) {
         setMessage('Invalid JSON: copy the full [...] list from Gemini chat.');
         return;
       }
-      const list = JSON.parse(rawText.slice(start, end + 1));
+      const list = JSON.parse(fixed.slice(start, end + 1));
       if (!Array.isArray(list) || list.length === 0) {
         setMessage('No questions found inside JSON.');
         return;
@@ -110,29 +125,30 @@ export default function AdminUploadPage() {
       const normalized = list.map((q: any, idx: number) => ({
         question_number: Number(q.question_number ?? idx + 1),
         question_text: String(q.question_text ?? ''),
-        options: Array.isArray(q.options) ? q.options.map(String) : [],
-        static_correct_answer: String(q.static_correct_answer ?? '').trim(),
+        options: normalizeOptions(q.options),
+        static_correct_answer: String(q.static_correct_answer ?? '').trim().toUpperCase(),
         static_explanation: String(q.static_explanation ?? ''),
         diagram_url: q.diagram_url || '',
         has_diagram: Boolean(q.has_diagram || q.diagram_url),
       }));
-      setQuestions(normalized);
-      setMessage(`Loaded ${normalized.length} questions! Review below and tap Publish.`);
+      const combined = append ? [...questions, ...normalized] : normalized;
+      setQuestions(combined);
+      setMessage(`Loaded ${combined.length} total questions! Review below and tap Publish.`);
     } catch {
       setMessage('Could not read JSON. Make sure you copied the entire JSON block cleanly.');
     }
   }
 
-  async function handleClipboardPaste() {
+  async function handleClipboardPaste(append = false) {
     try {
       const text = await navigator.clipboard.readText();
       setJsonInput(text);
-      parseAndLoadJson(text);
+      parseAndLoadJson(text, append);
     } catch {
       setMessage('Tap inside the box below, paste manually, then tap Load Pasted Text.');
     }
-  }
-    async function handlePublish() {
+      }
+            async function handlePublish() {
     setPublishing(true); setMessage(null);
     try {
       let activeDeptId = deptId;
@@ -201,13 +217,23 @@ export default function AdminUploadPage() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={handleClipboardPaste} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">
+            <button type="button" onClick={() => handleClipboardPaste(false)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">
               <ClipboardPaste className="w-4 h-4" />
-              1-Tap Paste & Load
+              1-Tap Paste (New)
             </button>
-            <button type="button" onClick={() => parseAndLoadJson(jsonInput)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
+            <button type="button" onClick={() => handleClipboardPaste(true)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-sky-400 text-slate-950 font-bold text-xs">
+              <ClipboardPaste className="w-4 h-4" />
+              1-Tap Append (+Batch)
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, false)} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              Load Pasted Text
+              Load Box (New)
+            </button>
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, true)} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
+              <CheckCircle2 className="w-4 h-4 text-sky-400" />
+              Append Box (+Batch)
             </button>
           </div>
           <textarea
