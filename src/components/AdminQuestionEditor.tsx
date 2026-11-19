@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { supabase } from '@/lib/supabase';
 import { CheckCircle2, ImagePlus, Trash2 } from 'lucide-react';
 
 export default function AdminQuestionEditor({
@@ -25,16 +24,21 @@ export default function AdminQuestionEditor({
 
   async function handleDiagramUpload(index: number, file?: File) {
     if (!file) return;
-    const fileName = `diag_${Date.now()}_${index}.webp`;
-    const { data, error } = await supabase.storage
-      .from('diagrams')
-      .upload(fileName, file, { contentType: file.type, upsert: true });
+    const raw = localStorage.getItem('gce_user');
+    const adminUserId = raw ? JSON.parse(raw).id : '';
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('adminUserId', adminUserId);
 
-    if (!error && data) {
-      const { data: urlData } = supabase.storage
-        .from('diagrams')
-        .getPublicUrl(data.path);
-      updateField(index, 'diagram_url', urlData.publicUrl);
+    const res = await fetch('/api/admin/upload-diagram', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (res.ok && data.url) {
+      updateField(index, 'diagram_url', data.url);
+    } else {
+      alert(data.error || 'Diagram upload failed');
     }
   }
 
@@ -145,4 +149,4 @@ export default function AdminQuestionEditor({
       </button>
     </div>
   );
-}
+          }
