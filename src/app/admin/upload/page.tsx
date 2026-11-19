@@ -93,11 +93,16 @@ export default function AdminUploadPage() {
     finally { setExtracting(false); }
   }
 
-  function normalizeOptions(rawOpts: any) {
+    function normalizeOptions(rawOpts: any) {
     if (!rawOpts) return { A: '', B: '', C: '', D: '' };
     if (Array.isArray(rawOpts)) {
       const strip = (s: any) => String(s ?? '').replace(/^[A-Da-d][\.\)\:\-]\s*/, '').trim();
-      return { A: strip(rawOpts[0]), B: strip(rawOpts[1]), C: strip(rawOpts[2]), D: strip(rawOpts[3]) };
+      return {
+        A: strip(rawOpts.at(0)),
+        B: strip(rawOpts.at(1)),
+        C: strip(rawOpts.at(2)),
+        D: strip(rawOpts.at(3)),
+      };
     }
     return {
       A: String(rawOpts.A ?? rawOpts.a ?? ''),
@@ -106,6 +111,7 @@ export default function AdminUploadPage() {
       D: String(rawOpts.D ?? rawOpts.d ?? ''),
     };
   }
+
 
   function parseAndLoadJson(rawText: string, append = false) {
     setMessage(null);
