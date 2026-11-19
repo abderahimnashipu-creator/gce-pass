@@ -131,9 +131,12 @@ export default function AdminUploadPage() {
         diagram_url: q.diagram_url || '',
         has_diagram: Boolean(q.has_diagram || q.diagram_url),
       }));
-      const combined = append ? [...questions, ...normalized] : normalized;
+      const base = append ? questions : [];
+      const map = new Map<number, any>();
+      [...base, ...normalized].forEach((item) => map.set(item.question_number, item));
+      const combined = Array.from(map.values()).sort((a, b) => a.question_number - b.question_number);
       setQuestions(combined);
-      setMessage(`Loaded ${combined.length} total questions! Review below and tap Publish.`);
+      setMessage(`Loaded ${combined.length} unique questions! Review below and tap Publish.`);
     } catch {
       setMessage('Could not read JSON. Make sure you copied the entire JSON block cleanly.');
     }
@@ -145,10 +148,10 @@ export default function AdminUploadPage() {
       setJsonInput(text);
       parseAndLoadJson(text, append);
     } catch {
-      setMessage('Tap inside the box below, paste manually, then tap Load Pasted Text.');
+      setMessage('Tap inside the box below, paste manually, then tap Load Box.');
     }
-      }
-            async function handlePublish() {
+}
+      async function handlePublish() {
     setPublishing(true); setMessage(null);
     try {
       let activeDeptId = deptId;
@@ -277,4 +280,4 @@ export default function AdminUploadPage() {
       {questions.length > 0 && <AdminQuestionEditor questions={questions} setQuestions={setQuestions} paperNumber={paperNumber} onPublish={handlePublish} publishing={publishing} />}
     </div>
   );
-}
+            }
