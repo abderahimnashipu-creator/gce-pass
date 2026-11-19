@@ -5,7 +5,9 @@ export async function POST(req: Request) {
   try {
     const {
       adminUserId,
+      levelId,
       departmentId,
+      newDeptName,
       subjectName,
       subjectCode,
       year,
@@ -27,11 +29,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // Resolve or create Department on the server
+    let activeDeptId = departmentId;
+    if (!activeDeptId && newDeptName?.trim() && levelId) {
+      const { data: existingDept } = await supabase
+        .from('departments')
+        .select('id')
+        .eq('level_id', levelId)
+        .ilike('name', newDeptName.trim())
+        .maybeSingle();
+
+      if (existingDept) {
+        activeDeptId = existingDept.id;
+      } else {
+        const { data: createdDept, error: deptErr } = await supabase
+          .from('departments')
+          .insert({ level_id: levelId, name: newDeptName.trim() })
+          .select('id')
+          .single();
+        if (deptErr) throw deptErr;
+        activeDeptId = createdDept.id;
+      }
+    }
+
+    if (!activeDeptId) {
+      return NextResponse.json(
+        { error: 'Please select or enter a Department.' },
+        { status: 400 }
+      );
+    }
+
     // Find or create Subject
     let { data: subject } = await supabase
       .from('subjects')
       .select('id')
-      .eq('department_id', departmentId)
+      .eq('department_id', activeDeptId)
       .ilike('name', subjectName.trim())
       .maybeSingle();
 
@@ -39,7 +71,7 @@ export async function POST(req: Request) {
       const { data: createdSub, error: subErr } = await supabase
         .from('subjects')
         .insert({
-          department_id: departmentId,
+          department_id: activeDeptId,
           name: subjectName.trim(),
           code: (subjectCode || '').trim(),
         })
@@ -105,5 +137,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-        }
-  
+}
