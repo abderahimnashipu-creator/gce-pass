@@ -3,8 +3,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 60;
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 export async function POST(req: Request) {
   try {
     const { images, paperNumber, subjectName, year } = await req.json();
@@ -14,7 +12,7 @@ export async function POST(req: Request) {
     const isMcq = Number(paperNumber) === 1;
 
     const prompt = `You are an expert Cameroon GCE Board examiner for ${subjectName} (${year}, Paper ${paperNumber}).
-FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5). Keep each static_explanation clear and concise (1-2 sentences).
+FORMATTING RULE: Never use LaTeX, $ symbols, or \\text{}. Write all numbers, SI units, math formulas, and chemical formulas in clean plain text and standard Unicode symbols (e.g., 800 N, 32,000 J, m/s², cm³, ×, ÷, √, π, θ, °, Ω, μ, H₂O, CO₂, (3x² + 2)/5). Keep each static_explanation brief (1 sentence).
 Extract ALL questions in numerical order and return a JSON array with keys:
 - "question_number": integer
 - "question_text": string
@@ -29,28 +27,17 @@ Output ONLY valid JSON array.`;
       return { inlineData: { data, mimeType } };
     });
 
-    const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
-    const errors: string[] = [];
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        // @ts-ignore
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    });
 
-    for (const modelName of models) {
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            generationConfig: { responseMimeType: 'application/json' },
-          });
-          const result = await model.generateContent([prompt, ...imageParts]);
-          return NextResponse.json({ questions: JSON.parse(result.response.text()) });
-        } catch (e: any) {
-          const msg = String(e?.message || 'Unknown error');
-          errors.push(`${modelName} (try ${attempt}): ${msg.slice(0, 140)}`);
-          if (msg.includes('429') || msg.includes('quota') || msg.includes('404')) break;
-          if (attempt === 1) await sleep(2000);
-        }
-      }
-    }
-
-    return NextResponse.json({ error: errors.join(' | ') }, { status: 503 });
+    const result = await model.generateContent([prompt, ...imageParts]);
+    return NextResponse.json({ questions: JSON.parse(result.response.text()) });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Extraction failed.' }, { status: 500 });
   }
