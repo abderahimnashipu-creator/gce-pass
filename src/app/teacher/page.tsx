@@ -74,7 +74,7 @@ function TeacherAndAssignmentPortal() {
 
       if (data && data.length > 0) {
         setPapers(data);
-        const firstSubj = data.subject_id;
+        const firstSubj = data[0].subject_id;
         setSelectedSubjectId(firstSubj);
         const matching = data.filter((p) => p.subject_id === firstSubj);
         setSelectedPaperIds(matching.map((p) => p.id));
