@@ -9,7 +9,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload } from 'lucide-react';
+import { LogOut, WifiOff, ShieldAlert, Upload, Users } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -95,12 +95,15 @@ export default function StudentDashboard() {
               +{user.phone_number} • Expires: <span className="text-green-400 font-semibold">{new Date(user.subscription_expires_at).toLocaleDateString()}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {user.role === 'admin' && (
               <button onClick={() => router.push('/admin/upload')} className="flex items-center gap-1 rounded-xl bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
                 <Upload className="w-3.5 h-3.5" /> Admin Upload
               </button>
             )}
+            <button onClick={() => router.push('/teacher')} className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-bold text-white">
+              <Users className="w-3.5 h-3.5" /> Class Portal
+            </button>
             <button onClick={() => setShowUpgrade(true)} className="rounded-xl bg-yellow-400/15 border border-yellow-400/40 px-3 py-1.5 text-xs font-bold text-yellow-300">
               Renew Plan
             </button>
@@ -136,5 +139,4 @@ export default function StudentDashboard() {
       </div>
     </AntiPiracyWrapper>
   );
-            }
-      
+    }
