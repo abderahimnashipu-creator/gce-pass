@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import MathText from './MathText';
-import { Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, RotateCcw, Award, Share2 } from 'lucide-react';
 
 export interface QuestionItem {
   id: string;
@@ -17,6 +17,62 @@ export interface QuestionItem {
   static_explanation: string;
 }
 
+function getGceGradeInfo(pct: number) {
+  if (pct >= 75) {
+    return {
+      grade: 'Grade A',
+      label: 'Distinction Pace!',
+      badgeStyle: 'bg-emerald-500/20 text-emerald-300 border-emerald-400',
+      bannerStyle: 'bg-emerald-950/80 border-emerald-500',
+    };
+  }
+  if (pct >= 65) {
+    return {
+      grade: 'Grade B',
+      label: 'Strong Pass Pace!',
+      badgeStyle: 'bg-green-500/20 text-green-300 border-green-400',
+      bannerStyle: 'bg-green-950/80 border-green-500',
+    };
+  }
+  if (pct >= 50) {
+    return {
+      grade: 'Grade C',
+      label: 'Credit Pass Pace!',
+      badgeStyle: 'bg-teal-500/20 text-teal-300 border-teal-400',
+      bannerStyle: 'bg-teal-950/80 border-teal-500',
+    };
+  }
+  if (pct >= 40) {
+    return {
+      grade: 'Grade D',
+      label: 'Pass — Keep Pushing!',
+      badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-400',
+      bannerStyle: 'bg-amber-950/70 border-amber-500',
+    };
+  }
+  if (pct >= 35) {
+    return {
+      grade: 'Grade E',
+      label: 'Borderline — Review Weak Topics!',
+      badgeStyle: 'bg-orange-500/20 text-orange-300 border-orange-400',
+      bannerStyle: 'bg-orange-950/70 border-orange-500',
+    };
+  }
+  if (pct >= 30) {
+    return {
+      grade: 'Grade F',
+      label: 'Weak Fail — Practice & Retry!',
+      badgeStyle: 'bg-rose-500/20 text-rose-300 border-rose-400',
+      bannerStyle: 'bg-rose-950/70 border-rose-500',
+    };
+  }
+  return {
+    grade: 'Grade U',
+    label: 'Unclassified — Study & Retry!',
+    badgeStyle: 'bg-red-500/20 text-red-300 border-red-400',
+    bannerStyle: 'bg-red-950/70 border-red-500',
+  };
+}
 export default function Paper1Simulator({
   questions,
   durationMinutes = 90,
@@ -59,6 +115,15 @@ export default function Paper1Simulator({
         : acc,
     0
   );
+
+  const percentage =
+    questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+  const gceInfo = getGceGradeInfo(percentage);
+
+  function shareOnWhatsApp() {
+    const text = `I just scored ${score}/${questions.length} (${percentage}% - ${gceInfo.grade}: ${gceInfo.label}) on Cameroon GCE Paper 1 using GCE Pass! Can you beat my score? https://vercel.app`;
+    window.open(`https://wa.me{encodeURIComponent(text)}`, '_blank');
+  }
 
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
@@ -107,18 +172,41 @@ export default function Paper1Simulator({
         </button>
       </div>
 
-      {/* Exam Score Banner */}
+      {/* Exam Score & GCE Grade Banner */}
       {mode === 'exam' && submitted && (
-        <div className="rounded-2xl bg-green-950/70 border border-green-600 p-5 text-center">
-          <div className="text-sm text-green-300 font-semibold">Exam Completed</div>
-          <div className="text-3xl font-extrabold text-white mt-1">
-            {score} / {questions.length} (
-            {questions.length > 0
-              ? Math.round((score / questions.length) * 100)
-              : 0}
-            %)
+        <div
+          className={`rounded-2xl border p-5 text-center space-y-3 ${gceInfo.bannerStyle}`}
+        >
+          <div className="text-xs uppercase tracking-wider text-slate-300 font-semibold">
+            Exam Completed
           </div>
-          <p className="text-xs text-slate-300 mt-1">
+
+          <div className="text-3xl font-extrabold text-white">
+            {score} / {questions.length} ({percentage}%)
+          </div>
+
+          {/* GCE Grade Badge */}
+          <div className="flex justify-center">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1 text-sm font-extrabold shadow-sm ${gceInfo.badgeStyle}`}
+            >
+              <Award className="w-4 h-4" />
+              {gceInfo.grade} — {gceInfo.label}
+            </span>
+          </div>
+
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={shareOnWhatsApp}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-500 px-4 py-2 text-xs font-bold text-white shadow transition"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Challenge a Friend on WhatsApp
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-300">
             Scroll down to review every verified static answer and explanation.
           </p>
         </div>
@@ -226,10 +314,10 @@ export default function Paper1Simulator({
           onClick={() => setSubmitted(true)}
           className="w-full py-3.5 rounded-2xl bg-green-600 hover:bg-green-500 font-bold text-white shadow-lg"
         >
-          Submit Exam & See Score
+          Submit Exam
         </button>
       )}
     </div>
   );
-  }
-            
+              }
+        
