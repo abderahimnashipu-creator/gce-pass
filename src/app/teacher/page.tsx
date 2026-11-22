@@ -420,38 +420,62 @@ function TeacherAndAssignmentPortal() {
     setLookupCode('');
   }
 
-  function shareAssignmentToWhatsApp() {
+    function shareAssignmentToWhatsApp() {
     if (!createdSession) return;
     const subjObj = subjectsMap.get(selectedSubjectId);
-    const subj = subjObj ? `${subjObj.code} - ${subjObj.name}` : 'GCE Paper 1';
+    const subj = subjObj ? subjObj.code + ' - ' + subjObj.name : 'GCE Paper 1';
     const yearsLabel = subjectPapers
       .filter((p) => selectedPaperIds.includes(p.id))
       .map((p) => p.year)
       .join(', ');
-    const link = `https://vercel.app{createdSession.class_code}`;
-    const text = `📚 *GCE PASS CLASS ASSIGNMENT*\nCreated by: ${createdSession.teacher_name}\nSubject: ${subj} (${yearsLabel})\nClass Code: *${createdSession.class_code}*\n\nTap link below to enter the Exam Hall (auto-submits on completion):\n${link}`;
-    window.location.href = `https://whatsapp.com{encodeURIComponent(text)}`;
+    const link = 'https://' + 'gce-pass.vercel.app/teacher?code=' + createdSession.class_code;
+    const text =
+      '📚 *GCE PASS CLASS ASSIGNMENT*\nCreated by: ' +
+      createdSession.teacher_name +
+      '\nSubject: ' +
+      subj +
+      ' (' +
+      yearsLabel +
+      ')\nClass Code: *' +
+      createdSession.class_code +
+      '*\n\nTap link below to enter the Exam Hall:\n' +
+      link;
+    window.location.href = 'https://' + '://whatsapp.com' + encodeURIComponent(text);
   }
 
   function shareSummaryToWhatsApp() {
     if (!reportData) return;
     const { session, stats } = reportData;
     const subj = session.papers?.subjects
-      ? `${session.papers.subjects.code} - ${session.papers.subjects.name}`
+      ? session.papers.subjects.code + ' - ' + session.papers.subjects.name
       : 'GCE Paper 1';
     const topFailedText =
       stats.top3Questions.length > 0
         ? stats.top3Questions
             .map(
               (q: any, i: number) =>
-                `${i + 1}. Q${q.question_number} (Failed by ${q.fail_count}/${stats.totalStudents} students)`
+                (i + 1) + '. Q' + q.question_number + ' (Failed by ' + q.fail_count + '/' + stats.totalStudents + ' students)'
             )
             .join('\n')
         : 'None yet';
 
-    const text = `📊 *CLASS EXAM SUMMARY (${session.class_code})*\nSubject: ${subj}\nStudents Completed: ${stats.totalStudents}\nClass Average: ${stats.avgPct}% (${getGradeBadge(stats.avgPct)})\n\n⚠️ *Top 3 Questions We Will Revise:*\n${topFailedText}\n\nKeep practicing on https://vercel.app`;
-    window.location.href = `https://whatsapp.com{encodeURIComponent(text)}`;
-                   }
+    const text =
+      '📊 *CLASS EXAM SUMMARY (' +
+      session.class_code +
+      ')*\nSubject: ' +
+      subj +
+      '\nStudents Completed: ' +
+      stats.totalStudents +
+      '\nClass Average: ' +
+      stats.avgPct +
+      '% (' +
+      getGradeBadge(stats.avgPct) +
+      ')\n\n⚠️ *Top 3 Questions We Will Revise:*\n' +
+      topFailedText +
+      '\n\nKeep practicing on https://' + 'gce-pass.vercel.app';
+    window.location.href = 'https://' + '://whatsapp.com' + encodeURIComponent(text);
+  }
+
     const studentScore = examQuestions.reduce(
     (acc, q) =>
       answers[q.id]?.toUpperCase() === q.static_correct_answer.toUpperCase()
