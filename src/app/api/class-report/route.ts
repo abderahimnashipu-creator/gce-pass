@@ -56,9 +56,28 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Student Exam Fetch Mode: return the exact 50 ordered questions for this Class Code
+    // Student Exam Fetch Mode
     if (mode === 'exam') {
-      const qIds: string[] = Array.isArray(session.question_ids)
+      const studentName = req.nextUrl.searchParams.get('student_name')?.trim();
+      if (studentName) {
+        const { data: existing } = await supabase
+          .from('class_submissions')
+          .select('id, score, total_questions')
+          .eq('session_id', session.id)
+          .ilike('student_name', studentName)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          return NextResponse.json(
+            {
+              error: `You have already completed this exam (${existing[0].score}/${existing[0].total_questions}). Retakes are locked in Exam Hall mode.`,
+              already_submitted: true,
+            },
+            { status: 403 }
+          );
+        }
+      }
+            const qIds: string[] = Array.isArray(session.question_ids)
         ? session.question_ids
         : [];
 
@@ -128,8 +147,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => Number(b[1]) - Number(a[1]))
       .slice(0, 3)
       .map(([num, count]) => ({ question_number: Number(num), fail_count: count }));
-
-    let top3Questions: any[] = [];
+        let top3Questions: any[] = [];
     if (top3Numbers.length > 0) {
       const qIds: string[] = Array.isArray(session.question_ids)
         ? session.question_ids
@@ -188,6 +206,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -201,6 +220,8 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'create_session') {
       const teacherName = String(body.teacher_name || '').trim();
+      const userId = body.user_id ? String(body.user_id).trim() : '';
+      const userPhone = body.user_phone ? String(body.user_phone).trim() : '';
       const paperIds: string[] = Array.isArray(body.paper_ids)
         ? body.paper_ids
         : body.paper_id
@@ -210,14 +231,50 @@ export async function POST(req: NextRequest) {
 
       if (!teacherName || paperIds.length === 0) {
         return NextResponse.json(
-          { error: 'Teacher name and at least one paper year are required.' },
+          { error: 'Your name and at least one paper year are required.' },
           { status: 400 }
         );
       }
 
-      let selectedQuestionIds: string[] | null = null;
+      // Check if creator is Admin (Admin has unlimited exam generation)
+      let isAdmin = false;
+      if (userId) {
+        const { data: uRow } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+        if (uRow?.role === 'admin') isAdmin = true;
+      } else if (userPhone) {
+        const { data: uRow } = await supabase
+          .from('users')
+          .select('role')
+          .eq('phone_number', userPhone)
+          .maybeSingle();
+        if (uRow?.role === 'admin') isAdmin = true;
+      }
 
-      // If multiple years selected OR shuffle enabled, build a 50-question shuffled set
+      // Enforce 3 exams per 24 hours cap for non-admins
+      if (!isAdmin) {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from('class_sessions')
+          .select('id', { count: 'exact', head: true })
+          .ilike('teacher_name', teacherName)
+          .gte('created_at', since24h);
+
+        if ((count ?? 0) >= 3) {
+          return NextResponse.json(
+            {
+              error:
+                "Daily limit of 3 generated exams reached! To keep learning and assessment effective, please take time to thoroughly review the questions, answers, and explanations from today's sessions before creating a new exam tomorrow.",
+            },
+            { status: 429 }
+          );
+        }
+      }
+            let selectedQuestionIds: string[] | null = null;
+
       if (paperIds.length > 1 || shuffleQuestions) {
         const { data: pool } = await supabase
           .from('questions')
@@ -276,7 +333,7 @@ export async function POST(req: NextRequest) {
 
       if (!classCode || !studentName) {
         return NextResponse.json(
-          { error: "Please enter your name and your teacher's class code." },
+          { error: "Please enter your name and the exam class code." },
           { status: 400 }
         );
       }
@@ -294,7 +351,21 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Only enforce single-paper match if this session isn't a multi-year mixed exam
+      // Block duplicate student submission on the same Class Code
+      const { data: dup } = await supabase
+        .from('class_submissions')
+        .select('id')
+        .eq('session_id', session.id)
+        .ilike('student_name', studentName)
+        .limit(1);
+
+      if (dup && dup.length > 0) {
+        return NextResponse.json(
+          { error: 'A submission with your name has already been recorded for this exam.' },
+          { status: 409 }
+        );
+      }
+
       const isMixed =
         Array.isArray(session.question_ids) && session.question_ids.length > 0;
       if (!isMixed && body.paper_id && session.paper_id !== body.paper_id) {
@@ -339,4 +410,4 @@ export async function DELETE(req: NextRequest) {
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
-                               }
+                                                                     }
