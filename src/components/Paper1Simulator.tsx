@@ -141,7 +141,9 @@ export default function Paper1Simulator({
   return (
     <div className="space-y-6">
       {/* Mode Switcher & Timer Bar */}
-      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-4">
+            {/* Mode Switcher & Timer Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-4">
+
         <div className="flex gap-2">
           <button
             onClick={() => resetTest('practice')}
