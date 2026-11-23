@@ -120,10 +120,20 @@ export default function Paper1Simulator({
     questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
   const gceInfo = getGceGradeInfo(percentage);
 
-  function shareOnWhatsApp() {
-    const text = `I just scored ${score}/${questions.length} (${percentage}% - ${gceInfo.grade}: ${gceInfo.label}) on Cameroon GCE Paper 1 using GCE Pass! Can you beat my score? https://vercel.app`;
-    window.open(`https://wa.me{encodeURIComponent(text)}`, '_blank');
+    async function shareOnWhatsApp() {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const text = `🏆 I just scored ${score}/${questions.length} (${percentage}% - ${gceInfo.grade}: ${gceInfo.label}) on Cameroon GCE Paper 1 using GCE Pass!\n\nCan you beat my score? Try now:\n${siteUrl}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    window.location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
   }
+
 
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
