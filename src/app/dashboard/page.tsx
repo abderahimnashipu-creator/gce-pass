@@ -9,7 +9,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload, Users } from 'lucide-react';
+import { LogOut, WifiOff, ShieldAlert, Upload, Users, Share2 } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -23,6 +23,20 @@ export default function StudentDashboard() {
 
   const practicalDays = Math.max(0, Math.ceil((new Date('2027-05-04T07:30:00+01:00').getTime() - Date.now()) / 86400000));
   const writtenDays = Math.max(0, Math.ceil((new Date('2027-06-01T07:30:00+01:00').getTime() - Date.now()) / 86400000));
+
+  async function handleInviteFriend() {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const text = `📚 Preparing for Cameroon GCE? Practice real Past Questions with verified static answers & explanations on GCE Pass Cameroon!\n\nStart your 7-day free trial now:\n${siteUrl}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    window.location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
+  }
 
   useEffect(() => {
     const raw = localStorage.getItem('gce_user');
@@ -105,6 +119,9 @@ export default function StudentDashboard() {
             )}
             <button onClick={() => router.push('/teacher')} className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-bold text-white">
               <Users className="w-3.5 h-3.5" /> Class Portal
+            </button>
+            <button onClick={handleInviteFriend} className="flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white">
+              <Share2 className="w-3.5 h-3.5" /> Invite Friend
             </button>
             <button onClick={() => setShowUpgrade(true)} className="rounded-xl bg-yellow-400/15 border border-yellow-400/40 px-3 py-1.5 text-xs font-bold text-yellow-300">
               Renew Plan
