@@ -9,12 +9,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload, Users, CalendarClock } from 'lucide-react';
-
-function getDaysRemaining(targetIso: string) {
-  const diff = new Date(targetIso).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
+import { LogOut, WifiOff, ShieldAlert, Upload, Users } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -25,9 +20,6 @@ export default function StudentDashboard() {
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
-
-  const practicalDays = getDaysRemaining('2027-05-04T07:30:00+01:00');
-  const writtenDays = getDaysRemaining('2027-06-01T07:30:00+01:00');
 
   useEffect(() => {
     const raw = localStorage.getItem('gce_user');
@@ -120,29 +112,10 @@ export default function StudentDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-slate-900 border border-amber-500/50 p-3.5 flex items-center gap-3">
-            <CalendarClock className="w-5 h-5 text-amber-400 shrink-0" />
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-amber-300 font-semibold">GCE Practicals</div>
-              <div className="text-base font-extrabold text-white">{practicalDays} Days Left</div>
-              <div className="text-[10px] text-slate-400">Starts May 4, 2027</div>
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-900 border border-emerald-500/50 p-3.5 flex items-center gap-3">
-            <CalendarClock className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-emerald-300 font-semibold">GCE Written</div>
-              <div className="text-base font-extrabold text-white">{writtenDays} Days Left</div>
-              <div className="text-[10px] text-slate-400">Starts June 1, 2027</div>
-            </div>
-          </div>
-        </div>
-
         <PaperSelector onSelectPaper={handleSelectPaper} />
 
         {offline && (
-          <div className="flex items-center gap-2 rounded-xl bg-slate-900 border border-amber-600 p-3 text-xs text-amber-200">
+          <div className="flex items-center gap-2 rounded-xl bg-amber-950/60 border border-amber-700 p-3 text-xs text-amber-200">
             <WifiOff className="w-4 h-4 shrink-0" />
             <span>Offline Mode: Viewing encrypted local copy.</span>
           </div>
@@ -165,5 +138,4 @@ export default function StudentDashboard() {
       </div>
     </AntiPiracyWrapper>
   );
-          }
-          
+}
