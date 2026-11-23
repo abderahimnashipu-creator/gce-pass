@@ -420,7 +420,19 @@ function TeacherAndAssignmentPortal() {
     setLookupCode('');
   }
 
-    function shareAssignmentToWhatsApp() {
+      async function openWhatsAppShare(text: string) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    window.location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
+  }
+
+  function shareAssignmentToWhatsApp() {
     if (!createdSession) return;
     const subjObj = subjectsMap.get(selectedSubjectId);
     const subj = subjObj ? subjObj.code + ' - ' + subjObj.name : 'GCE Paper 1';
@@ -428,7 +440,7 @@ function TeacherAndAssignmentPortal() {
       .filter((p) => selectedPaperIds.includes(p.id))
       .map((p) => p.year)
       .join(', ');
-    const link = 'https://' + 'gce-pass.vercel.app/teacher?code=' + createdSession.class_code;
+    const link = window.location.origin + '/teacher?code=' + createdSession.class_code;
     const text =
       '📚 *GCE PASS CLASS ASSIGNMENT*\nCreated by: ' +
       createdSession.teacher_name +
@@ -440,7 +452,7 @@ function TeacherAndAssignmentPortal() {
       createdSession.class_code +
       '*\n\nTap link below to enter the Exam Hall:\n' +
       link;
-    window.location.href = 'https://' + '://whatsapp.com' + encodeURIComponent(text);
+    openWhatsAppShare(text);
   }
 
   function shareSummaryToWhatsApp() {
@@ -472,9 +484,11 @@ function TeacherAndAssignmentPortal() {
       getGradeBadge(stats.avgPct) +
       ')\n\n⚠️ *Top 3 Questions We Will Revise:*\n' +
       topFailedText +
-      '\n\nKeep practicing on https://' + 'gce-pass.vercel.app';
-    window.location.href = 'https://' + '://whatsapp.com' + encodeURIComponent(text);
+      '\n\nKeep practicing on ' +
+      window.location.origin;
+    openWhatsAppShare(text);
   }
+
 
     const studentScore = examQuestions.reduce(
     (acc, q) =>
