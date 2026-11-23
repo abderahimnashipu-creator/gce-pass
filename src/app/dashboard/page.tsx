@@ -21,6 +21,9 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
 
+  const practicalDays = Math.max(0, Math.ceil((new Date('2027-05-04T07:30:00+01:00').getTime() - Date.now()) / 86400000));
+  const writtenDays = Math.max(0, Math.ceil((new Date('2027-06-01T07:30:00+01:00').getTime() - Date.now()) / 86400000));
+
   useEffect(() => {
     const raw = localStorage.getItem('gce_user');
     if (!raw) { router.replace('/'); return; }
@@ -92,6 +95,9 @@ export default function StudentDashboard() {
             <h1 className="font-extrabold text-base text-white">GCE Pass Cameroon</h1>
             <p className="text-[11px] text-slate-400">
               +{user.phone_number} • Expires: <span className="text-green-400 font-semibold">{new Date(user.subscription_expires_at).toLocaleDateString()}</span>
+            </p>
+            <p className="text-[11px] text-amber-300 font-semibold mt-0.5">
+              2027 GCE: Practicals in {practicalDays}d • Written in {writtenDays}d
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
