@@ -9,7 +9,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload, Users } from 'lucide-react';
+import { LogOut, WifiOff, ShieldAlert, Upload, Users, CalendarClock } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -96,9 +96,6 @@ export default function StudentDashboard() {
             <p className="text-[11px] text-slate-400">
               +{user.phone_number} • Expires: <span className="text-green-400 font-semibold">{new Date(user.subscription_expires_at).toLocaleDateString()}</span>
             </p>
-            <p className="text-[11px] text-amber-300 font-semibold mt-0.5">
-              2027 GCE: Practicals in {practicalDays}d • Written in {writtenDays}d
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {user.role === 'admin' && (
@@ -116,12 +113,30 @@ export default function StudentDashboard() {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
+          <div className="w-full grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+            <div className="rounded-xl bg-slate-950 border border-amber-500/40 p-2.5 flex items-center gap-2.5">
+              <CalendarClock className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-amber-300 font-semibold">GCE Practicals</div>
+                <div className="text-sm font-extrabold text-white">{practicalDays} Days Left</div>
+                <div className="text-[10px] text-slate-400">May 4, 2027</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-slate-950 border border-emerald-500/40 p-2.5 flex items-center gap-2.5">
+              <CalendarClock className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-emerald-300 font-semibold">GCE Written</div>
+                <div className="text-sm font-extrabold text-white">{writtenDays} Days Left</div>
+                <div className="text-[10px] text-slate-400">June 1, 2027</div>
+              </div>
+            </div>
+          </div>
         </header>
 
         <PaperSelector onSelectPaper={handleSelectPaper} />
 
         {offline && (
-          <div className="flex items-center gap-2 rounded-xl bg-amber-950/60 border border-amber-700 p-3 text-xs text-amber-200">
+          <div className="flex items-center gap-2 rounded-xl bg-slate-900 border border-amber-600 p-3 text-xs text-amber-200">
             <WifiOff className="w-4 h-4 shrink-0" />
             <span>Offline Mode: Viewing encrypted local copy.</span>
           </div>
