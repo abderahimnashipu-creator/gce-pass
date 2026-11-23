@@ -22,26 +22,17 @@ export default function AntiPiracyWrapper({
   }, []);
 
   const watermarkText = `${phoneNumber || 'GCE-PASS'} • PROTECTED`;
+  const svg = `<svg xmlns='http://w3.org' width='260' height='140'><text x='10' y='80' fill='white' fill-opacity='0.06' font-family='sans-serif' font-size='13' font-weight='bold' transform='rotate(-26 130 70)'>${watermarkText}</text></svg>`;
+  const bgUrl = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 
   return (
-    <div className="relative no-copy overflow-hidden">
-      {/* Subtle diagonal repeating phone-number watermark */}
+    <div className="relative no-copy">
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-40 flex flex-wrap items-center justify-center gap-16 opacity-[0.06] select-none overflow-hidden"
-      >
-        {Array.from({ length: 24 }).map((_, i) => (
-          <span
-            key={i}
-            className="text-sm font-bold tracking-widest text-white -rotate-30 whitespace-nowrap"
-            style={{ transform: 'rotate(-28deg)' }}
-          >
-            {watermarkText}
-          </span>
-        ))}
-      </div>
-
+        className="pointer-events-none fixed inset-0 z-40 select-none"
+        style={{ backgroundImage: bgUrl, transform: 'translateZ(0)', willChange: 'transform' }}
+      />
       <div className="relative z-10">{children}</div>
     </div>
   );
-      }
+}
