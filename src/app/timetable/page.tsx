@@ -14,6 +14,15 @@ interface TimetableSlot {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const STORAGE_KEY = 'gce_pass_timetable_v1';
 
+function format12Hour(time24: string): string {
+  const [hStr, mStr] = time24.split(':');
+  const h = Number(hStr);
+  if (Number.isNaN(h)) return time24;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${mStr || '00'} ${period}`;
+}
+
 export default function StudyTimetablePage() {
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [day, setDay] = useState('Monday');
@@ -58,8 +67,7 @@ export default function StudyTimetablePage() {
 
   const visibleSlots =
     filterDay === 'All' ? slots : slots.filter((s) => s.day === filterDay);
-
-  return (
+                                        return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-12">
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
@@ -71,13 +79,14 @@ export default function StudyTimetablePage() {
           </div>
           <Link
             href="/dashboard"
-            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 whitespace-nowrap"
           >
             ← Dashboard
           </Link>
         </div>
       </header>
-            <main className="max-w-3xl mx-auto px-4 pt-4 space-y-5">
+
+      <main className="max-w-3xl mx-auto px-4 pt-4 space-y-5">
         <form
           onSubmit={handleAdd}
           className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3"
@@ -153,7 +162,7 @@ export default function StudyTimetablePage() {
                   <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-400">
                     <span>{slot.day}</span>
                     <span className="inline-flex items-center gap-1 text-slate-300">
-                      <Clock className="w-3 h-3" /> {slot.time}
+                      <Clock className="w-3 h-3" /> {format12Hour(slot.time)}
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-white">{slot.subject}</p>
@@ -172,4 +181,4 @@ export default function StudyTimetablePage() {
       </main>
     </div>
   );
-              }
+}
