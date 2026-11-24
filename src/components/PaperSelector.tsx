@@ -60,7 +60,8 @@ export default function PaperSelector({
       }
     });
   }, []);
-    useEffect(() => {
+
+  useEffect(() => {
     if (!eduId) return;
     setLevelId(''); setDeptId(''); setSubjectId(''); setYear(''); setPaperId('');
     const key = `gce_cache_levels_${eduId}`;
@@ -69,8 +70,7 @@ export default function PaperSelector({
       if (!error && data) { setLevels(data); writeCache(key, data); }
     });
   }, [eduId]);
-
-  useEffect(() => {
+    useEffect(() => {
     if (!levelId) return;
     setDeptId(''); setSubjectId(''); setYear(''); setPaperId('');
     const key = `gce_cache_depts_${levelId}`;
@@ -144,7 +144,9 @@ export default function PaperSelector({
           onChange={(e) => {
             setPaperId(e.target.value);
             const found = papers.find((p) => p.id === e.target.value);
-            if (found) onSelectPaper(found);
+            const subj = subjects.find((s) => s.id === subjectId);
+            const subjLabel = subj ? `${subj.code ? `${subj.code} - ` : ''}${subj.name}` : 'General Practice';
+            if (found) onSelectPaper({ ...found, subject_name: subjLabel });
           }}
           disabled={!year}
           className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-sm text-white disabled:opacity-40"
@@ -155,4 +157,5 @@ export default function PaperSelector({
       </div>
     </section>
   );
-}
+                     }
+        
