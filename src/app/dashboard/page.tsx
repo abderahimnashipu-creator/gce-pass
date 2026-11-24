@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { isSubscriptionActive, savePaperOffline, loadPaperOffline } from '@/lib/offlineCache';
+import { getMistakes } from '@/lib/mistakeBank';
 import AntiPiracyWrapper from '@/components/AntiPiracyWrapper';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload, Users, Share2 } from 'lucide-react';
+import { LogOut, WifiOff, ShieldAlert, Upload, Users, Share2, BookmarkCheck } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function StudentDashboard() {
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [mistakeCount, setMistakeCount] = useState(0);
 
   const practicalDays = Math.max(0, Math.ceil((new Date('2027-05-04T07:30:00+01:00').getTime() - Date.now()) / 86400000));
   const writtenDays = Math.max(0, Math.ceil((new Date('2027-06-01T07:30:00+01:00').getTime() - Date.now()) / 86400000));
@@ -39,6 +41,7 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => {
+    setMistakeCount(getMistakes().length);
     const raw = localStorage.getItem('gce_user');
     if (!raw) { router.replace('/'); return; }
     const parsed = JSON.parse(raw);
@@ -120,6 +123,9 @@ export default function StudentDashboard() {
             <button onClick={() => router.push('/teacher')} className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-bold text-white">
               <Users className="w-3.5 h-3.5" /> Class Portal
             </button>
+            <button onClick={() => router.push('/mistakes')} className="flex items-center gap-1 rounded-xl bg-amber-700 hover:bg-amber-600 px-3 py-1.5 text-xs font-bold text-white">
+              <BookmarkCheck className="w-3.5 h-3.5" /> Mistake Bank{mistakeCount > 0 ? ` (${mistakeCount})` : ''}
+            </button>
             <button onClick={handleInviteFriend} className="flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white">
               <Share2 className="w-3.5 h-3.5" /> Invite Friend
             </button>
@@ -164,7 +170,7 @@ export default function StudentDashboard() {
 
         {!loading && activePaper && questions.length > 0 && (
           Number(activePaper.paper_number) === 1
-            ? <Paper1Simulator questions={questions} durationMinutes={activePaper.duration_minutes || 90} />
+            ? <Paper1Simulator questions={questions} durationMinutes={activePaper.duration_minutes || 90} subjectName={activePaper.subject_name || 'General Practice'} />
             : <StructuredPaperViewer questions={questions} />
         )}
       </div>
