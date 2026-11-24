@@ -10,7 +10,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import PaperSelector from '@/components/PaperSelector';
 import Paper1Simulator, { QuestionItem } from '@/components/Paper1Simulator';
 import StructuredPaperViewer from '@/components/StructuredPaperViewer';
-import { LogOut, WifiOff, ShieldAlert, Upload, Users, Share2, BookmarkCheck } from 'lucide-react';
+import { LogOut, WifiOff, ShieldAlert, Upload, Users, Share2, BookmarkCheck, Calendar } from 'lucide-react';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -122,6 +122,9 @@ export default function StudentDashboard() {
             )}
             <button onClick={() => router.push('/teacher')} className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-bold text-white">
               <Users className="w-3.5 h-3.5" /> Class Portal
+            </button>
+            <button onClick={() => router.push('/timetable')} className="flex items-center gap-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-bold text-white">
+              <Calendar className="w-3.5 h-3.5" /> Timetable
             </button>
             <button onClick={() => router.push('/mistakes')} className="flex items-center gap-1 rounded-xl bg-amber-700 hover:bg-amber-600 px-3 py-1.5 text-xs font-bold text-white">
               <BookmarkCheck className="w-3.5 h-3.5" /> Mistake Bank{mistakeCount > 0 ? ` (${mistakeCount})` : ''}
