@@ -3,6 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+function readCache(key: string): any[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCache(key: string, data: any[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+}
+
 export default function PaperSelector({
   onSelectPaper,
 }: {
@@ -13,6 +28,7 @@ export default function PaperSelector({
   const [departments, setDepartments] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [papers, setPapers] = useState<any[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
 
   const [eduId, setEduId] = useState('');
   const [levelId, setLevelId] = useState('');
@@ -22,33 +38,66 @@ export default function PaperSelector({
   const [paperId, setPaperId] = useState('');
 
   useEffect(() => {
-    supabase.from('education_types').select('*').order('name').then(({ data }) => {
-      if (data) setEduTypes(data);
-    });
+    setIsOffline(!navigator.onLine);
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => {
+      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', goOnline);
+    };
   }, []);
 
   useEffect(() => {
+    const key = 'gce_cache_edu_types';
+    const cached = readCache(key);
+    if (cached.length) setEduTypes(cached);
+    supabase.from('education_types').select('*').order('name').then(({ data, error }) => {
+      if (!error && data) {
+        setEduTypes(data);
+        writeCache(key, data);
+      }
+    });
+  }, []);
+    useEffect(() => {
     if (!eduId) return;
     setLevelId(''); setDeptId(''); setSubjectId(''); setYear(''); setPaperId('');
-    supabase.from('levels').select('*').eq('education_type_id', eduId).order('name').then(({ data }) => setLevels(data || []));
+    const key = `gce_cache_levels_${eduId}`;
+    setLevels(readCache(key));
+    supabase.from('levels').select('*').eq('education_type_id', eduId).order('name').then(({ data, error }) => {
+      if (!error && data) { setLevels(data); writeCache(key, data); }
+    });
   }, [eduId]);
 
   useEffect(() => {
     if (!levelId) return;
     setDeptId(''); setSubjectId(''); setYear(''); setPaperId('');
-    supabase.from('departments').select('*').eq('level_id', levelId).order('name').then(({ data }) => setDepartments(data || []));
+    const key = `gce_cache_depts_${levelId}`;
+    setDepartments(readCache(key));
+    supabase.from('departments').select('*').eq('level_id', levelId).order('name').then(({ data, error }) => {
+      if (!error && data) { setDepartments(data); writeCache(key, data); }
+    });
   }, [levelId]);
 
   useEffect(() => {
     if (!deptId) return;
     setSubjectId(''); setYear(''); setPaperId('');
-    supabase.from('subjects').select('*').eq('department_id', deptId).order('name').then(({ data }) => setSubjects(data || []));
+    const key = `gce_cache_subjects_${deptId}`;
+    setSubjects(readCache(key));
+    supabase.from('subjects').select('*').eq('department_id', deptId).order('name').then(({ data, error }) => {
+      if (!error && data) { setSubjects(data); writeCache(key, data); }
+    });
   }, [deptId]);
 
   useEffect(() => {
     if (!subjectId) return;
     setYear(''); setPaperId('');
-    supabase.from('papers').select('*').eq('subject_id', subjectId).eq('is_published', true).order('year', { ascending: false }).then(({ data }) => setPapers(data || []));
+    const key = `gce_cache_papers_${subjectId}`;
+    setPapers(readCache(key));
+    supabase.from('papers').select('*').eq('subject_id', subjectId).eq('is_published', true).order('year', { ascending: false }).then(({ data, error }) => {
+      if (!error && data) { setPapers(data); writeCache(key, data); }
+    });
   }, [subjectId]);
 
   const years = Array.from(new Set(papers.map((p) => p.year)));
@@ -56,7 +105,14 @@ export default function PaperSelector({
 
   return (
     <section className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-3">
-      <h2 className="text-sm font-bold text-white">Select Your Past Paper</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-white">Select Your Past Paper</h2>
+        {isOffline && (
+          <span className="rounded-full bg-amber-950 border border-amber-700 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+            Offline Mode
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <select value={eduId} onChange={(e) => setEduId(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-sm text-white">
           <option value="">1. Education Type</option>
@@ -100,4 +156,3 @@ export default function PaperSelector({
     </section>
   );
 }
-  
