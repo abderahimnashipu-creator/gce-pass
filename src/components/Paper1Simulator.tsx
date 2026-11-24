@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import MathText from './MathText';
 import { Clock, CheckCircle, XCircle, RotateCcw, Award, Share2 } from 'lucide-react';
+import { saveMistakes } from '@/lib/mistakeBank';
 
 export interface QuestionItem {
   id: string;
@@ -76,19 +77,47 @@ function getGceGradeInfo(pct: number) {
 export default function Paper1Simulator({
   questions,
   durationMinutes = 90,
+  subjectName = 'General Practice',
 }: {
   questions: QuestionItem[];
   durationMinutes?: number;
+  subjectName?: string;
 }) {
   const [mode, setMode] = useState<'practice' | 'exam'>('practice');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(durationMinutes * 60);
 
+  function toMistakeItem(q: QuestionItem) {
+    return {
+      id: q.id,
+      subjectName,
+      question_text: q.question_text,
+      options: {
+        A: q.option_a || '',
+        B: q.option_b || '',
+        C: q.option_c || '',
+        D: q.option_d || '',
+      },
+      static_correct_answer: q.static_correct_answer.toUpperCase(),
+      static_explanation: q.static_explanation,
+      diagram_url: q.diagram_url || null,
+      savedAt: Date.now(),
+    };
+  }
+
+  function finishExam() {
+    setSubmitted(true);
+    const missed = questions
+      .filter((q) => answers[q.id]?.toUpperCase() !== q.static_correct_answer.toUpperCase())
+      .map(toMistakeItem);
+    if (missed.length > 0) saveMistakes(missed);
+  }
+
   useEffect(() => {
     if (mode !== 'exam' || submitted) return;
     if (secondsLeft <= 0) {
-      setSubmitted(true);
+      finishExam();
       return;
     }
     const timer = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
@@ -99,6 +128,13 @@ export default function Paper1Simulator({
     if (mode === 'exam' && submitted) return;
     if (mode === 'practice' && answers[qId]) return;
     setAnswers((prev) => ({ ...prev, [qId]: opt }));
+
+    if (mode === 'practice') {
+      const q = questions.find((item) => item.id === qId);
+      if (q && opt.toUpperCase() !== q.static_correct_answer.toUpperCase()) {
+        saveMistakes([toMistakeItem(q)]);
+      }
+    }
   }
 
   function resetTest(newMode: 'practice' | 'exam') {
@@ -119,7 +155,6 @@ export default function Paper1Simulator({
   const percentage =
     questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
   const gceInfo = getGceGradeInfo(percentage);
-
     async function shareOnWhatsApp() {
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const text = `🏆 I just scored ${score}/${questions.length} (${percentage}% - ${gceInfo.grade}: ${gceInfo.label}) on Cameroon GCE Paper 1 using GCE Pass!\n\nCan you beat my score? Try now:\n${siteUrl}`;
@@ -134,16 +169,13 @@ export default function Paper1Simulator({
     window.location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
   }
 
-
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
 
   return (
     <div className="space-y-6">
       {/* Mode Switcher & Timer Bar */}
-            {/* Mode Switcher & Timer Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-4">
-
         <div className="flex gap-2">
           <button
             onClick={() => resetTest('practice')}
@@ -197,7 +229,6 @@ export default function Paper1Simulator({
             {score} / {questions.length} ({percentage}%)
           </div>
 
-          {/* GCE Grade Badge */}
           <div className="flex justify-center">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1 text-sm font-extrabold shadow-sm ${gceInfo.badgeStyle}`}
@@ -219,12 +250,11 @@ export default function Paper1Simulator({
           </div>
 
           <p className="text-xs text-slate-300">
-            Scroll down to review every verified static answer and explanation.
+            Missed questions were saved to My Mistake Bank for offline review.
           </p>
         </div>
       )}
-
-      {/* Question List */}
+                                {/* Question List */}
       <div className="space-y-5">
         {questions.map((q) => {
           const picked = answers[q.id];
@@ -323,7 +353,7 @@ export default function Paper1Simulator({
       {mode === 'exam' && !submitted && questions.length > 0 && (
         <button
           type="button"
-          onClick={() => setSubmitted(true)}
+          onClick={finishExam}
           className="w-full py-3.5 rounded-2xl bg-green-600 hover:bg-green-500 font-bold text-white shadow-lg"
         >
           Submit Exam
@@ -331,5 +361,4 @@ export default function Paper1Simulator({
       )}
     </div>
   );
-              }
-        
+}
