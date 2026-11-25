@@ -46,7 +46,7 @@ export default function StudentDashboard() {
     if (!raw) { router.replace('/'); return; }
     const parsed = JSON.parse(raw);
     setUser(parsed);
-    setExpired(!isSubscriptionActive(parsed.subscription_expires_at));
+    setExpired(parsed.role !== 'admin' && !isSubscriptionActive(parsed.subscription_expires_at));
 
     supabase
       .from('users')
@@ -57,21 +57,22 @@ export default function StudentDashboard() {
         if (data) {
           localStorage.setItem('gce_user', JSON.stringify(data));
           setUser(data);
-          setExpired(!isSubscriptionActive(data.subscription_expires_at));
+          setExpired(data.role !== 'admin' && !isSubscriptionActive(data.subscription_expires_at));
         }
       });
   }, [router]);
 
   async function handleSelectPaper(paperMeta: any) {
     if (!user) return;
-    if (!isSubscriptionActive(user.subscription_expires_at)) {
+    if (user.role !== 'admin' && !isSubscriptionActive(user.subscription_expires_at)) {
       setExpired(true);
       return;
     }
     setLoading(true);
     setOffline(false);
     setActivePaper(paperMeta);
-        try {
+        const effectiveExpiry = user.role === 'admin' ? '2099-12-31T23:59:59Z' : user.subscription_expires_at;
+    try {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
@@ -79,9 +80,9 @@ export default function StudentDashboard() {
         .order('question_number', { ascending: true });
       if (error || !data) throw error;
       setQuestions(data);
-      await savePaperOffline(paperMeta.id, { paper: paperMeta, questions: data }, user.id, user.subscription_expires_at);
+      await savePaperOffline(paperMeta.id, { paper: paperMeta, questions: data }, user.id, effectiveExpiry);
     } catch {
-      const cached = await loadPaperOffline(paperMeta.id, user.id, user.subscription_expires_at);
+      const cached = await loadPaperOffline(paperMeta.id, user.id, effectiveExpiry);
       if (cached) {
         setActivePaper(cached.paper);
         setQuestions(cached.questions);
@@ -111,7 +112,7 @@ export default function StudentDashboard() {
           <div>
             <h1 className="font-extrabold text-base text-white">GCE Pass Cameroon</h1>
             <p className="text-[11px] text-slate-400">
-              +{user.phone_number} • Expires: <span className="text-green-400 font-semibold">{new Date(user.subscription_expires_at).toLocaleDateString()}</span>
+              +{user.phone_number} • {user.role === 'admin' ? <span className="text-emerald-400 font-semibold">Admin Unlimited</span> : <>Expires: <span className="text-green-400 font-semibold">{new Date(user.subscription_expires_at).toLocaleDateString()}</span></>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -132,9 +133,11 @@ export default function StudentDashboard() {
             <button onClick={handleInviteFriend} className="flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white">
               <Share2 className="w-3.5 h-3.5" /> Invite Friend
             </button>
-            <button onClick={() => setShowUpgrade(true)} className="rounded-xl bg-yellow-400/15 border border-yellow-400/40 px-3 py-1.5 text-xs font-bold text-yellow-300">
-              Renew Plan
-            </button>
+            {user.role !== 'admin' && (
+              <button onClick={() => setShowUpgrade(true)} className="rounded-xl bg-yellow-400/15 border border-yellow-400/40 px-3 py-1.5 text-xs font-bold text-yellow-300">
+                Renew Plan
+              </button>
+            )}
             <button onClick={() => { localStorage.removeItem('gce_user'); router.replace('/'); }} className="p-2 rounded-xl bg-slate-800 text-slate-300">
               <LogOut className="w-4 h-4" />
             </button>
