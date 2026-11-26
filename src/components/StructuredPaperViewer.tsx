@@ -62,7 +62,7 @@ export default function StructuredPaperViewer({
               <div className="rounded-xl bg-slate-800/80 border border-slate-700 p-4 space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Official Verified Marking Guide</span>
+                  <span>Verified Solution</span>
                 </div>
                 <div className="font-normal text-slate-200 leading-relaxed whitespace-pre-line">
                   <MathText text={q.static_correct_answer} />
@@ -79,5 +79,4 @@ export default function StructuredPaperViewer({
       })}
     </div>
   );
-                }
-              
+}
