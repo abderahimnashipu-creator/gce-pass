@@ -5,6 +5,16 @@ import MathText from './MathText';
 import { QuestionItem } from './Paper1Simulator';
 import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
+function formatReadable(text?: string) {
+  if (!text) return '';
+  const letters = text.replace(/[^a-zA-Z]/g, '');
+  const isAllCaps = letters.length > 20 && letters === letters.toUpperCase();
+  if (!isAllCaps) return text;
+  return text
+    .toLowerCase()
+    .replace(/(^\s*\w|[\.\!\?\n]\s*\w|\([a-z0-9]+\)\s*\w)/g, (m) => m.toUpperCase());
+}
+
 export default function StructuredPaperViewer({
   questions,
 }: {
@@ -65,7 +75,7 @@ export default function StructuredPaperViewer({
                   <span>Verified Solution</span>
                 </div>
                 <div className="font-normal text-slate-200 leading-relaxed whitespace-pre-line">
-                  <MathText text={q.static_correct_answer} />
+                  <MathText text={formatReadable(q.static_correct_answer)} />
                 </div>
                 {q.static_explanation && (
                   <div className="text-xs text-slate-400 leading-relaxed border-t border-slate-700 pt-2.5">
@@ -79,4 +89,4 @@ export default function StructuredPaperViewer({
       })}
     </div>
   );
-}
+                     }
