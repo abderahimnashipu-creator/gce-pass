@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
+import { isSubscriptionActive } from '@/lib/offlineCache';
 
 export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -11,39 +12,37 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
 
   useEffect(() => {
     async function verifyAccess() {
+      const raw = localStorage.getItem('gce_user');
+      if (!raw) {
+        router.replace('/');
+        return;
+      }
+
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-          router.replace('/');
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, subscription_end')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.role === 'admin') {
-          setAllowed(true);
-          return;
-        }
-
-        const end = profile?.subscription_end ? new Date(profile.subscription_end).getTime() : 0;
-        if (end > Date.now()) {
+        const parsed = JSON.parse(raw);
+        if (parsed.role === 'admin' || isSubscriptionActive(parsed.subscription_expires_at)) {
           setAllowed(true);
         } else {
           router.replace('/dashboard');
         }
-      } catch {
-        const cachedEnd = Number(localStorage.getItem('gce_pass_sub_end') || '0');
-        if (cachedEnd > Date.now()) {
-          setAllowed(true);
-        } else {
-          router.replace('/');
+
+        const { data } = await supabase
+          .from('users')
+          .select('id, phone_number, role, subscription_plan, subscription_expires_at')
+          .eq('id', parsed.id)
+          .single();
+
+        if (data) {
+          localStorage.setItem('gce_user', JSON.stringify(data));
+          if (data.role === 'admin' || isSubscriptionActive(data.subscription_expires_at)) {
+            setAllowed(true);
+          } else {
+            setAllowed(false);
+            router.replace('/dashboard');
+          }
         }
+      } catch {
+        // Keep offline cache decision if network fails
       } finally {
         setChecking(false);
       }
@@ -61,4 +60,4 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
   }
 
   return allowed ? <>{children}</> : null;
-          }
+}
