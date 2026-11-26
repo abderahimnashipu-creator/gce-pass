@@ -66,8 +66,7 @@ export default function AuthLandingPage() {
       setLoading(false);
     }
   }
-
-  return (
+    return (
     <main className="min-h-screen flex flex-col justify-center items-center px-4 py-10 bg-slate-950">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
@@ -78,7 +77,7 @@ export default function AuthLandingPage() {
             GCE Pass Cameroon
           </h1>
           <p className="text-xs text-slate-400">
-            TVEE Intermediate, GCE O-Level & A-Level Past Questions with Verified Static Answers & Offline Access.
+            TVEE Intermediate, GCE O-Level &amp; A-Level Past Questions with Verified Static Answers &amp; Offline Access.
           </p>
         </div>
 
@@ -113,8 +112,7 @@ export default function AuthLandingPage() {
               Log In
             </button>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
                 Cameroon Phone Number
@@ -135,7 +133,9 @@ export default function AuthLandingPage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                4 to 6 Digit Secret PIN
+                {mode === 'register'
+                  ? 'Create Password (4–6 digits)'
+                  : 'Password (4–6 digits)'}
               </label>
               <div className="flex items-center rounded-xl bg-slate-800 border border-slate-700 px-3">
                 <KeyRound className="w-4 h-4 text-green-400 mr-2" />
@@ -180,5 +180,4 @@ export default function AuthLandingPage() {
       </div>
     </main>
   );
-                }
-  
+}
