@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import { saveMistakes } from '@/lib/mistakeBank';
+import SubscriptionGuard from '@/components/SubscriptionGuard';
 import MathText from '@/components/MathText';
 import {
   Users,
@@ -20,11 +22,6 @@ import {
   Lock,
   ShieldAlert,
 } from 'lucide-react';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 function getGradeBadge(pct: number) {
   if (pct >= 75) return 'Grade A';
@@ -51,7 +48,7 @@ function TeacherAndAssignmentPortal() {
     phone_number?: string;
     role?: string;
   } | null>(null);
-    const [papers, setPapers] = useState<any[]>([]);
+  const [papers, setPapers] = useState<any[]>([]);
   const [teacherName, setTeacherName] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>([]);
@@ -66,7 +63,7 @@ function TeacherAndAssignmentPortal() {
   const [studentCode, setStudentCode] = useState(initialCode);
   const [studentName, setStudentName] = useState('');
   const [examSession, setExamSession] = useState<any>(null);
-  const [examQuestions, setExamQuestions] = useState<any[]>([]);
+    const [examQuestions, setExamQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [examLocked, setExamLocked] = useState(false);
   const [tabWarnings, setTabWarnings] = useState(0);
@@ -81,45 +78,13 @@ function TeacherAndAssignmentPortal() {
   const autoSubmitLockRef = useRef(false);
 
   useEffect(() => {
-    async function detectUserRole() {
-      try {
-        let foundId = '';
-        let foundPhone = '';
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i) || '';
-          const raw = localStorage.getItem(k);
-          if (!raw || !raw.startsWith('{')) continue;
-          try {
-            const parsed = JSON.parse(raw);
-            if (parsed?.phone_number || parsed?.role || parsed?.user?.phone_number) {
-              const u = parsed.user || parsed;
-              if (u.id) foundId = u.id;
-              if (u.phone_number) foundPhone = u.phone_number;
-              if (u.role) {
-                setCurrentUser({ id: u.id, phone_number: u.phone_number, role: u.role });
-              }
-            }
-          } catch {}
-        }
-
-        if (foundId) {
-          const { data } = await supabase
-            .from('users')
-            .select('id, phone_number, role')
-            .eq('id', foundId)
-            .maybeSingle();
-          if (data) setCurrentUser(data);
-        } else if (foundPhone) {
-          const { data } = await supabase
-            .from('users')
-            .select('id, phone_number, role')
-            .eq('phone_number', foundPhone)
-            .maybeSingle();
-          if (data) setCurrentUser(data);
-        }
-      } catch {}
-    }
-    detectUserRole();
+    try {
+      const raw = localStorage.getItem('gce_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        setCurrentUser({ id: u.id, phone_number: u.phone_number, role: u.role });
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -140,7 +105,8 @@ function TeacherAndAssignmentPortal() {
     }
     loadPapers();
   }, []);
-    const finalizeAndSubmitExam = useCallback(
+
+  const finalizeAndSubmitExam = useCallback(
     async (reason?: string) => {
       if (autoSubmitLockRef.current || !examSession) return;
       autoSubmitLockRef.current = true;
@@ -148,20 +114,12 @@ function TeacherAndAssignmentPortal() {
       setErrorMsg('');
 
       const finalName = studentName.trim() || 'Student';
-      const score = examQuestions.reduce(
-        (acc, q) =>
-          answers[q.id]?.toUpperCase() === q.static_correct_answer.toUpperCase()
-            ? acc + 1
-            : acc,
-        0
+      const missedList = examQuestions.filter(
+        (q) =>
+          answers[q.id]?.toUpperCase() !== q.static_correct_answer.toUpperCase()
       );
-
-      const missedNumbers = examQuestions
-        .filter(
-          (q) =>
-            answers[q.id]?.toUpperCase() !== q.static_correct_answer.toUpperCase()
-        )
-        .map((q) => q.question_number);
+      const score = examQuestions.length - missedList.length;
+      const missedNumbers = missedList.map((q) => q.question_number);
 
       try {
         const res = await fetch('/api/class-report', {
@@ -169,7 +127,7 @@ function TeacherAndAssignmentPortal() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'submit_score',
-            class_code: examSession.class_code,
+                        class_code: examSession.class_code,
             student_name: finalName,
             score,
             total_questions: examQuestions.length,
@@ -179,6 +137,31 @@ function TeacherAndAssignmentPortal() {
         const json = await res.json();
         if (!res.ok && res.status !== 409) {
           throw new Error(json.error || 'Could not upload exam score');
+        }
+
+        const subjMeta = examSession.papers?.subjects;
+        const subjectLabel = subjMeta
+          ? `${subjMeta.code} - ${subjMeta.name}`
+          : 'Class Assignment';
+
+        if (missedList.length > 0) {
+          saveMistakes(
+            missedList.map((q) => ({
+              id: q.id,
+              subjectName: subjectLabel,
+              question_text: q.question_text,
+              options: {
+                A: q.option_a || '',
+                B: q.option_b || '',
+                C: q.option_c || '',
+                D: q.option_d || '',
+              },
+              static_correct_answer: q.static_correct_answer,
+              static_explanation: q.static_explanation || '',
+              diagram_url: q.diagram_url || null,
+              savedAt: Date.now(),
+            }))
+          );
         }
 
         try {
@@ -209,8 +192,7 @@ function TeacherAndAssignmentPortal() {
     },
     [examSession, studentName, examQuestions, answers]
   );
-
-  useEffect(() => {
+    useEffect(() => {
     if (tab !== 'student' || !examLocked || submitted) return;
     if (secondsLeft <= 0) {
       finalizeAndSubmitExam('Time is up! Your exam was automatically submitted.');
@@ -222,6 +204,25 @@ function TeacherAndAssignmentPortal() {
 
   useEffect(() => {
     if (!examLocked || submitted) return;
+
+    window.history.pushState({ examLocked: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState({ examLocked: true }, '', window.location.href);
+      setTabWarnings((prev) => {
+        const next = prev + 1;
+        if (next >= 2) {
+          finalizeAndSubmitExam(
+            'Exam auto-submitted because you tried to leave the Exam Hall twice.'
+          );
+        } else {
+          alert(
+            '⚠️ EXAM HALL WARNING (1/2): Leaving or pressing Back is prohibited! One more attempt will automatically submit your exam.'
+          );
+        }
+        return next;
+      });
+    };
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -246,9 +247,11 @@ function TeacherAndAssignmentPortal() {
       }
     };
 
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -371,6 +374,15 @@ function TeacherAndAssignmentPortal() {
         );
         return;
       }
+
+      const activeRaw = localStorage.getItem(`gce_exam_active_${code}`);
+      if (activeRaw) {
+        const active = JSON.parse(activeRaw);
+        setErrorMsg(
+          `Exam Hall Locked: "${active.student_name}" already entered ${code} on this device and left before submitting. Re-entry is blocked.`
+        );
+        return;
+      }
     } catch {}
 
     setLoadingExam(true);
@@ -408,8 +420,7 @@ function TeacherAndAssignmentPortal() {
       setLoadingExam(false);
     }
   }
-
-  async function handleDeleteNow() {
+      async function handleDeleteNow() {
     if (!reportData?.session?.class_code) return;
     if (!confirm('Delete this class report and all student scores now?')) return;
     await fetch(
@@ -420,7 +431,7 @@ function TeacherAndAssignmentPortal() {
     setLookupCode('');
   }
 
-      async function openWhatsAppShare(text: string) {
+  async function openWhatsAppShare(text: string) {
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ text });
@@ -489,8 +500,7 @@ function TeacherAndAssignmentPortal() {
     openWhatsAppShare(text);
   }
 
-
-    const studentScore = examQuestions.reduce(
+  const studentScore = examQuestions.reduce(
     (acc, q) =>
       answers[q.id]?.toUpperCase() === q.static_correct_answer.toUpperCase()
         ? acc + 1
@@ -503,8 +513,7 @@ function TeacherAndAssignmentPortal() {
       : 0;
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
-
-  return (
+    return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 pb-24">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5">
@@ -574,8 +583,7 @@ function TeacherAndAssignmentPortal() {
             {errorMsg}
           </div>
         )}
-
-        {tab === 'create' && (
+                {tab === 'create' && (
           <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
             <form onSubmit={handleCreateCode} className="space-y-4">
               <div>
@@ -706,7 +714,7 @@ function TeacherAndAssignmentPortal() {
                     • Once you tap <strong>Start Exam</strong>, you cannot restart or retake this code.
                   </p>
                   <p>
-                    • Switching tabs/apps twice automatically submits your exam.
+                    • Switching tabs/apps or pressing Back twice automatically submits your exam.
                   </p>
                   <p>
                     • Your score uploads directly to the report before your grade is revealed.
@@ -753,7 +761,7 @@ function TeacherAndAssignmentPortal() {
 
             {examLocked && !submitted && examSession && (
               <div className="space-y-5">
-                <div className="sticky top-0 z-30 flex items-center justify-between rounded-2xl bg-slate-900/95 backdrop-blur border border-blue-500 p-4 shadow-lg">
+                <div className="sticky top-0 z-30 flex items-center justify-between rounded-2xl bg-slate-900 border border-blue-500 p-4 shadow-lg">
                   <div>
                     <div className="text-xs text-blue-400 font-bold flex items-center gap-1">
                       <Lock className="w-3.5 h-3.5" /> Code: {examSession.class_code} •{' '}
@@ -775,8 +783,7 @@ function TeacherAndAssignmentPortal() {
                     </span>
                   </div>
                 </div>
-
-                {examQuestions.map((q) => {
+                                {examQuestions.map((q) => {
                   const picked = answers[q.id];
                   const options = [
                     { key: 'A', text: q.option_a },
@@ -854,7 +861,7 @@ function TeacherAndAssignmentPortal() {
                 )}
               </div>
             )}
-                          {submitted && scoreSent && examSession && (
+                                {submitted && scoreSent && examSession && (
               <div className="space-y-5">
                 {showSubmittedAlert && (
                   <div className="rounded-2xl bg-green-950/80 border-2 border-green-500 p-5 text-center space-y-2 shadow-xl">
@@ -865,7 +872,7 @@ function TeacherAndAssignmentPortal() {
                     <p className="text-xs text-green-200">
                       Your answers have been recorded under{' '}
                       <strong>{studentName}</strong> for{' '}
-                      <strong>{examSession.class_code}</strong>.
+                      <strong>{examSession.class_code}</strong>. Missed questions were saved to your Mistake Bank.
                     </p>
                   </div>
                 )}
@@ -944,7 +951,7 @@ function TeacherAndAssignmentPortal() {
             )}
           </div>
         )}
-                      {tab === 'report' && (
+                {tab === 'report' && (
           <div className="space-y-5">
             <div className="rounded-2xl bg-slate-900 border border-slate-800 p-4 flex gap-2">
               <input
@@ -1100,8 +1107,10 @@ function TeacherAndAssignmentPortal() {
 
 export default function TeacherPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 text-white p-6">Loading...</div>}>
-      <TeacherAndAssignmentPortal />
-    </Suspense>
+    <SubscriptionGuard>
+      <Suspense fallback={<div className="min-h-screen bg-slate-950 text-white p-6">Loading...</div>}>
+        <TeacherAndAssignmentPortal />
+      </Suspense>
+    </SubscriptionGuard>
   );
-                    }
+                }
