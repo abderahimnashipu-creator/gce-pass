@@ -26,10 +26,10 @@ export default function StructuredPaperViewer({
             className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4"
           >
             <div className="flex items-start gap-3">
-              <span className="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-bold text-green-400">
+              <span className="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-bold text-emerald-400">
                 Question {q.question_number}
               </span>
-              <div className="text-sm text-slate-100">
+              <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-line">
                 <MathText text={q.question_text} />
               </div>
             </div>
@@ -45,7 +45,7 @@ export default function StructuredPaperViewer({
             <button
               type="button"
               onClick={() => toggleSolution(q.id)}
-              className="flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-green-400 transition"
+              className="flex items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-semibold text-emerald-300 transition"
             >
               {isOpen ? (
                 <>
@@ -59,17 +59,19 @@ export default function StructuredPaperViewer({
             </button>
 
             {isOpen && (
-              <div className="rounded-xl bg-slate-950 border border-green-900/70 p-4 space-y-3 text-sm">
-                <div className="flex items-center gap-2 text-xs font-bold text-green-400">
+              <div className="rounded-xl bg-slate-800/80 border border-slate-700 p-4 space-y-3 text-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Official Verified Solution</span>
+                  <span>Official Verified Marking Guide</span>
                 </div>
-                <div className="font-semibold text-white">
+                <div className="font-normal text-slate-200 leading-relaxed whitespace-pre-line">
                   <MathText text={q.static_correct_answer} />
                 </div>
-                <div className="text-xs text-slate-300 border-t border-slate-800 pt-2">
-                  <MathText text={q.static_explanation} />
-                </div>
+                {q.static_explanation && (
+                  <div className="text-xs text-slate-400 leading-relaxed border-t border-slate-700 pt-2.5">
+                    <MathText text={q.static_explanation} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -77,4 +79,5 @@ export default function StructuredPaperViewer({
       })}
     </div>
   );
-}
+                }
+              
