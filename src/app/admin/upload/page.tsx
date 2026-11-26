@@ -288,16 +288,15 @@ export default function AdminUploadPage() {
         {message && <div className="rounded-xl bg-slate-800 p-3 text-xs text-green-300">{message}</div>}
       </div>
 
-      {questions.length > 0 && (
-        <div className="space-y-4">
-          <AdminQuestionEditor questions={questions} onChange={setQuestions} />
-          <button onClick={handlePublish} disabled={publishing} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 py-3.5 text-sm font-extrabold text-slate-950">
-            <CheckCircle2 className="w-4 h-4" />
-            {publishing ? 'Publishing...' : `Publish ${questions.length} Verified Questions`}
-          </button>
-        </div>
+            {questions.length > 0 && (
+        <AdminQuestionEditor
+          questions={questions}
+          setQuestions={setQuestions}
+          paperNumber={paperNumber}
+          onPublish={handlePublish}
+          publishing={publishing}
+        />
       )}
     </div>
   );
-          }
-            
+}
