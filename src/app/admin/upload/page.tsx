@@ -36,7 +36,7 @@ export default function AdminUploadPage() {
   const [newDeptName, setNewDeptName] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
-  const [year, setYear] = useState('2024');
+  const [year, setYear] = useState('2026');
   const [paperNumber, setPaperNumber] = useState(1);
   const [images, setImages] = useState<string[]>([]);
   const [jsonInput, setJsonInput] = useState('');
@@ -61,8 +61,7 @@ export default function AdminUploadPage() {
   useEffect(() => {
     if (levelId) supabase.from('departments').select('*').eq('level_id', levelId).then(({ data }) => setDepartments(data || []));
   }, [levelId]);
-
-  async function handlePhotos(files: FileList | null) {
+    async function handlePhotos(files: FileList | null) {
     if (!files) return;
     const out = await Promise.all(Array.from(files).map(shrink));
     setImages((p) => [...p, ...out]);
@@ -93,7 +92,7 @@ export default function AdminUploadPage() {
     finally { setExtracting(false); }
   }
 
-    function normalizeOptions(rawOpts: any) {
+  function normalizeOptions(rawOpts: any) {
     if (!rawOpts) return { A: '', B: '', C: '', D: '' };
     if (Array.isArray(rawOpts)) {
       const strip = (s: any) => String(s ?? '').replace(/^[A-Da-d][\.\)\:\-]\s*/, '').trim();
@@ -110,10 +109,8 @@ export default function AdminUploadPage() {
       C: String(rawOpts.C ?? rawOpts.c ?? ''),
       D: String(rawOpts.D ?? rawOpts.d ?? ''),
     };
-  }
-
-
-  function parseAndLoadJson(rawText: string, append = false) {
+          }
+    function parseAndLoadJson(rawText: string, append = false) {
     setMessage(null);
     try {
       const fixed = rawText.replace(/\]\s*\[/g, ',');
@@ -128,8 +125,9 @@ export default function AdminUploadPage() {
         setMessage('No questions found inside JSON.');
         return;
       }
-            const normalized = list.map((q: any, idx: number) => {
+      const normalized = list.map((q: any, idx: number) => {
         const opts = normalizeOptions(q.options);
+        const rawAns = String(q.static_correct_answer ?? '').trim();
         return {
           question_number: Number(q.question_number ?? idx + 1),
           question_text: String(q.question_text ?? ''),
@@ -138,7 +136,7 @@ export default function AdminUploadPage() {
           option_b: opts.B,
           option_c: opts.C,
           option_d: opts.D,
-          static_correct_answer: String(q.static_correct_answer ?? '').trim().toUpperCase(),
+          static_correct_answer: Number(paperNumber) === 1 ? rawAns.toUpperCase() : rawAns,
           static_explanation: String(q.static_explanation ?? ''),
           diagram_url: q.diagram_url || '',
           has_diagram: Boolean(q.has_diagram || q.diagram_url),
@@ -164,8 +162,9 @@ export default function AdminUploadPage() {
     } catch {
       setMessage('Tap inside the box below, paste manually, then tap Load Box.');
     }
-}
-        async function handlePublish() {
+  }
+
+  async function handlePublish() {
     setPublishing(true); setMessage(null);
     try {
       const res = await fetch('/api/admin/publish', {
@@ -193,10 +192,8 @@ export default function AdminUploadPage() {
       }
     } catch { setMessage('Publish network error.'); }
     finally { setPublishing(false); }
-  }
-
-
-  if (!user) return null;
+      }
+        if (!user) return null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -205,99 +202,102 @@ export default function AdminUploadPage() {
       </button>
 
       <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
-        <h1 className="text-lg font-extrabold text-white">Snap & Upload Past Paper</h1>
+        <h1 className="text-lg font-extrabold text-white">Snap &amp; Upload Past Paper</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <select value={eduId} onChange={(e) => setEduId(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white">
+          <select value={eduId} onChange={(e) => { setEduId(e.target.value); setLevelId(''); setDeptId(''); }} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white">
             <option value="">1. Education Type</option>
             {eduTypes.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
-          <select value={levelId} onChange={(e) => setLevelId(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white">
+
+          <select value={levelId} onChange={(e) => { setLevelId(e.target.value); setDeptId(''); }} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white">
             <option value="">2. Level</option>
             {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
-          <select value={deptId} onChange={(e) => setDeptId(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white">
-            <option value="">3. Existing Department (or type new →)</option>
+
+          <select value={deptId} onChange={(e) => setDeptId(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white">
+            <option value="">3. Existing Department (or type new)</option>
             {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
-          <input value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} placeholder="Or New Department" className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white" />
-          <input value={subjectName} onChange={(e) => setSubjectName(e.target.value)} placeholder="4. Subject Name" className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white" />
-          <input value={subjectCode} onChange={(e) => setSubjectCode(e.target.value)} placeholder="Subject Code" className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white" />
-          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} placeholder="5. Year" className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white" />
-          <select value={paperNumber} onChange={(e) => setPaperNumber(Number(e.target.value))} className="rounded-xl bg-slate-800 border border-slate-700 p-3 text-white">
-            <option value={1}>Paper 1 (MCQ)</option>
-            <option value={2}>Paper 2 (Structured/Essay)</option>
+
+          <input placeholder="Or New Department Name" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white" />
+          <input placeholder="Subject Name (e.g. Resource Management on Home Studies)" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white" />
+          <input placeholder="Subject Code (e.g. 5040)" value={subjectCode} onChange={(e) => setSubjectCode(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white" />
+          <input placeholder="Year (e.g. 2026)" value={year} onChange={(e) => setYear(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white" />
+
+          <select value={paperNumber} onChange={(e) => setPaperNumber(Number(e.target.value))} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white">
+            <option value={1}>Paper 1 (MCQs)</option>
+            <option value={2}>Paper 2 (Structured / Essay)</option>
             <option value={3}>Paper 3 (Practical)</option>
           </select>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-emerald-300">Option 1: Paste JSON from Gemini Chat (100% Free)</span>
-            {jsonInput && (
-              <button type="button" onClick={() => setJsonInput('')} className="text-[11px] text-red-400 flex items-center gap-1">
-                <Trash2 className="w-3 h-3" /> Clear
+        <div className="rounded-xl bg-slate-950 border border-green-900/60 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold text-green-400">Option 1: Paste JSON from Gemini Chat (Unlimited &amp; Free)</span>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => handleClipboardPaste(false)} className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
+                <ClipboardPaste className="w-3.5 h-3.5" /> Paste &amp; Replace
+              </button>
+              <button type="button" onClick={() => handleClipboardPaste(true)} className="flex items-center gap-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-bold text-green-300">
+                + Paste &amp; Append
+              </button>
+            </div>
+          </div>
+
+          <textarea
+            rows={4}
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            placeholder='Paste JSON array here: [{"question_number":1,...}]'
+            className="w-full rounded-xl bg-slate-900 border border-slate-800 p-2.5 text-xs font-mono text-slate-200"
+          />
+
+          <div className="flex gap-2">
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, false)} className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white">
+              Load Box (Replace)
+            </button>
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, true)} className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-green-300">
+              Load Box (Append Batch)
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-slate-950 border border-slate-800 p-4 space-y-3">
+          <span className="text-xs font-bold text-slate-300">Option 2: Snap Photos &amp; Extract via API</span>
+          <div className="flex flex-wrap gap-3">
+            <label className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer">
+              <Camera className="w-4 h-4 text-green-400" /> Take Photo
+              <input type="file" accept="image/*" capture="environment" multiple onChange={(e) => handlePhotos(e.target.files)} className="hidden" />
+            </label>
+            <label className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer">
+              <ImageIcon className="w-4 h-4 text-green-400" /> Gallery ({images.length})
+              <input type="file" accept="image/*" multiple onChange={(e) => handlePhotos(e.target.files)} className="hidden" />
+            </label>
+            {images.length > 0 && (
+              <button onClick={() => setImages([])} className="flex items-center gap-1 rounded-xl bg-red-950/60 border border-red-800 px-3 py-2 text-xs text-red-300">
+                <Trash2 className="w-3.5 h-3.5" /> Clear
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => handleClipboardPaste(false)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">
-              <ClipboardPaste className="w-4 h-4" />
-              1-Tap Paste (New)
-            </button>
-            <button type="button" onClick={() => handleClipboardPaste(true)} className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-sky-400 text-slate-950 font-bold text-xs">
-              <ClipboardPaste className="w-4 h-4" />
-              1-Tap Append (+Batch)
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => parseAndLoadJson(jsonInput, false)} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              Load Box (New)
-            </button>
-            <button type="button" onClick={() => parseAndLoadJson(jsonInput, true)} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-sky-400" />
-              Append Box (+Batch)
-            </button>
-          </div>
-          <textarea
-            rows={3}
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            placeholder="Or long-press here to paste the JSON array from Gemini chat..."
-            className="w-full rounded-xl bg-slate-950 border border-slate-700 p-3 text-xs font-mono text-slate-200"
-          />
+          <button onClick={handleExtract} disabled={extracting || !images.length} className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-bold text-green-400 disabled:opacity-50">
+            <Sparkles className="w-4 h-4" />
+            {extracting ? 'Extracting...' : 'Extract Questions from Photos'}
+          </button>
         </div>
 
-        <div className="rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/60 p-5 space-y-3 text-center">
-          <p className="text-xs font-semibold text-slate-400">Option 2: Direct Gemini API Photo Upload</p>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="relative flex flex-col items-center justify-center rounded-xl bg-slate-800 border border-slate-600 p-4 text-white overflow-hidden">
-              <Camera className="w-7 h-7 text-green-400 mb-1" />
-              <span className="text-xs font-bold">Snap Camera</span>
-              <input type="file" accept="image/*" capture="environment" className="absolute inset-0 opacity-0" onChange={(e) => handlePhotos(e.target.files)} />
-            </label>
-            <label className="relative flex flex-col items-center justify-center rounded-xl bg-slate-800 border border-slate-600 p-4 text-white overflow-hidden">
-              <ImageIcon className="w-7 h-7 text-sky-400 mb-1" />
-              <span className="text-xs font-bold">Pick Gallery</span>
-              <input type="file" accept="image/*" multiple className="absolute inset-0 opacity-0" onChange={(e) => handlePhotos(e.target.files)} />
-            </label>
-          </div>
-          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-400">
-            <span>{images.length} page(s) selected</span>
-            {images.length > 0 && <button type="button" onClick={() => setImages([])} className="text-red-400 flex items-center gap-1"><Trash2 className="w-3 h-3" /> Clear</button>}
-          </div>
-        </div>
-
-        {images.length > 0 && <div className="flex gap-2 overflow-x-auto pb-2">{images.map((src, i) => <img key={i} src={src} alt="" className="h-20 rounded-lg border border-slate-700" />)}</div>}
-
-        <button type="button" disabled={extracting} onClick={handleExtract} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-400 font-bold text-sm text-slate-950 disabled:opacity-50">
-          <Sparkles className="w-4 h-4" />
-          {extracting ? 'Extracting & Solving with Gemini AI...' : 'Extract & Solve with Gemini AI'}
-        </button>
-        {message && <p className="text-xs font-semibold text-center text-amber-300 bg-slate-800 rounded-xl p-3">{message}</p>}
+        {message && <div className="rounded-xl bg-slate-800 p-3 text-xs text-green-300">{message}</div>}
       </div>
 
-      {questions.length > 0 && <AdminQuestionEditor questions={questions} setQuestions={setQuestions} paperNumber={paperNumber} onPublish={handlePublish} publishing={publishing} />}
+      {questions.length > 0 && (
+        <div className="space-y-4">
+          <AdminQuestionEditor questions={questions} onChange={setQuestions} />
+          <button onClick={handlePublish} disabled={publishing} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 py-3.5 text-sm font-extrabold text-slate-950">
+            <CheckCircle2 className="w-4 h-4" />
+            {publishing ? 'Publishing...' : `Publish ${questions.length} Verified Questions`}
+          </button>
+        </div>
+      )}
     </div>
   );
-            }
+          }
+            
