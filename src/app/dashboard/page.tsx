@@ -61,8 +61,7 @@ export default function StudentDashboard() {
         }
       });
   }, [router]);
-
-  async function handleSelectPaper(paperMeta: any) {
+    async function handleSelectPaper(paperMeta: any) {
     if (!user) return;
     if (user.role !== 'admin' && !isSubscriptionActive(user.subscription_expires_at)) {
       setExpired(true);
@@ -71,16 +70,22 @@ export default function StudentDashboard() {
     setLoading(true);
     setOffline(false);
     setActivePaper(paperMeta);
-        const effectiveExpiry = user.role === 'admin' ? '2099-12-31T23:59:59Z' : user.subscription_expires_at;
+    const effectiveExpiry = user.role === 'admin' ? '2099-12-31T23:59:59Z' : user.subscription_expires_at;
     try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('paper_id', paperMeta.id)
-        .order('question_number', { ascending: true });
-      if (error || !data) throw error;
-      setQuestions(data);
-      await savePaperOffline(paperMeta.id, { paper: paperMeta, questions: data }, user.id, effectiveExpiry);
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, paper_id: paperMeta.id }),
+      });
+      if (res.status === 403) {
+        setExpired(true);
+        setQuestions([]);
+        return;
+      }
+      const result = await res.json();
+      if (!res.ok || !result.questions) throw new Error(result.error || 'Fetch failed');
+      setQuestions(result.questions);
+      await savePaperOffline(paperMeta.id, { paper: paperMeta, questions: result.questions }, user.id, effectiveExpiry);
     } catch {
       const cached = await loadPaperOffline(paperMeta.id, user.id, effectiveExpiry);
       if (cached) {
