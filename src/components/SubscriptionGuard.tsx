@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { isSubscriptionActive } from '@/lib/offlineCache';
 
 export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
@@ -29,26 +28,29 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
       }
 
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, phone_number, role, subscription_plan, subscription_expires_at')
-          .eq('id', parsed.id)
-          .single();
+        const res = await fetch('/api/verify-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: parsed.id }),
+        });
 
-        if (error && error.code === 'PGRST116') {
+        if (res.status === 404 || res.status === 400) {
           localStorage.removeItem('gce_user');
           router.replace('/');
           return;
         }
 
-        if (data) {
-          localStorage.setItem('gce_user', JSON.stringify(data));
-          if (data.role === 'admin' || isSubscriptionActive(data.subscription_expires_at)) {
-            setAllowed(true);
-          } else {
-            router.replace('/dashboard');
+        if (res.ok) {
+          const { user } = await res.json();
+          if (user) {
+            localStorage.setItem('gce_user', JSON.stringify(user));
+            if (user.role === 'admin' || isSubscriptionActive(user.subscription_expires_at)) {
+              setAllowed(true);
+            } else {
+              router.replace('/dashboard');
+            }
+            return;
           }
-          return;
         }
       } catch {
         // Network offline: fall back to cached subscription check below
