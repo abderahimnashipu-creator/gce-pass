@@ -225,70 +225,70 @@ export default function AdminUploadPage() {
           <input placeholder="Year (e.g. 2026)" value={year} onChange={(e) => setYear(e.target.value)} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white" />
 
           <select value={paperNumber} onChange={(e) => setPaperNumber(Number(e.target.value))} className="rounded-xl bg-slate-800 border border-slate-700 p-2.5 text-white">
-            <option value={1}>Paper 1 (MCQs)</option>
+            <option value={1}>Paper 1 (MCQ)</option>
             <option value={2}>Paper 2 (Structured / Essay)</option>
             <option value={3}>Paper 3 (Practical)</option>
           </select>
         </div>
 
-        <div className="rounded-xl bg-slate-950 border border-green-900/60 p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-bold text-green-400">Option 1: Paste JSON from Gemini Chat (Unlimited &amp; Free)</span>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => handleClipboardPaste(false)} className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
-                <ClipboardPaste className="w-3.5 h-3.5" /> Paste &amp; Replace
-              </button>
-              <button type="button" onClick={() => handleClipboardPaste(true)} className="flex items-center gap-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs font-bold text-green-300">
-                + Paste &amp; Append
-              </button>
-            </div>
+        <div className="rounded-2xl bg-emerald-950/25 border border-emerald-500/40 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-emerald-400">Option 1: Paste JSON from Gemini Chat (100% Free)</span>
+            <button type="button" onClick={() => { setJsonInput(''); setQuestions([]); setMessage(null); }} className="flex items-center gap-1 rounded-lg bg-rose-500/15 border border-rose-500/40 px-2.5 py-1 text-xs font-bold text-rose-300">
+              <Trash2 className="w-3.5 h-3.5" /> Clear
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" onClick={() => handleClipboardPaste(false)} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2.5 px-3 text-xs font-extrabold text-slate-950">
+              <ClipboardPaste className="w-4 h-4 shrink-0" /> <span>1-Tap Paste<br />(New)</span>
+            </button>
+            <button type="button" onClick={() => handleClipboardPaste(true)} className="flex items-center justify-center gap-2 rounded-xl bg-sky-400 hover:bg-sky-300 py-2.5 px-3 text-xs font-extrabold text-slate-950">
+              <ClipboardPaste className="w-4 h-4 shrink-0" /> <span>1-Tap Append<br />(+Batch)</span>
+            </button>
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, false)} className="flex items-center justify-center gap-2 rounded-xl bg-slate-800 border border-slate-700 py-2.5 px-3 text-xs font-bold text-slate-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> <span>Load Box<br />(New)</span>
+            </button>
+            <button type="button" onClick={() => parseAndLoadJson(jsonInput, true)} className="flex items-center justify-center gap-2 rounded-xl bg-slate-800 border border-slate-700 py-2.5 px-3 text-xs font-bold text-slate-200">
+              <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" /> <span>Append Box<br />(+Batch)</span>
+            </button>
           </div>
 
           <textarea
             rows={4}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            placeholder='Paste JSON array here: [{"question_number":1,...}]'
-            className="w-full rounded-xl bg-slate-900 border border-slate-800 p-2.5 text-xs font-mono text-slate-200"
+            placeholder="Or long-press here to paste the JSON array from Gemini chat..."
+            className="w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-xs font-mono text-slate-200"
           />
-
-          <div className="flex gap-2">
-            <button type="button" onClick={() => parseAndLoadJson(jsonInput, false)} className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white">
-              Load Box (Replace)
-            </button>
-            <button type="button" onClick={() => parseAndLoadJson(jsonInput, true)} className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-green-300">
-              Load Box (Append Batch)
-            </button>
-          </div>
         </div>
 
-        <div className="rounded-xl bg-slate-950 border border-slate-800 p-4 space-y-3">
-          <span className="text-xs font-bold text-slate-300">Option 2: Snap Photos &amp; Extract via API</span>
-          <div className="flex flex-wrap gap-3">
-            <label className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer">
-              <Camera className="w-4 h-4 text-green-400" /> Take Photo
+        <div className="rounded-2xl bg-slate-950/60 border border-dashed border-slate-700 p-4 space-y-3 text-center">
+          <span className="block text-xs font-semibold text-slate-300">Option 2: Direct Gemini API Photo Upload</span>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-slate-900 border border-slate-700 py-4 text-xs font-bold text-white cursor-pointer">
+              <Camera className="w-5 h-5 text-emerald-400" />
+              <span>Snap Camera</span>
               <input type="file" accept="image/*" capture="environment" multiple onChange={(e) => handlePhotos(e.target.files)} className="hidden" />
             </label>
-            <label className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer">
-              <ImageIcon className="w-4 h-4 text-green-400" /> Gallery ({images.length})
+            <label className="flex flex-col items-center justify-center gap-1.5 rounded-xl bg-slate-900 border border-slate-700 py-4 text-xs font-bold text-white cursor-pointer">
+              <ImageIcon className="w-5 h-5 text-sky-400" />
+              <span>Pick Gallery</span>
               <input type="file" accept="image/*" multiple onChange={(e) => handlePhotos(e.target.files)} className="hidden" />
             </label>
-            {images.length > 0 && (
-              <button onClick={() => setImages([])} className="flex items-center gap-1 rounded-xl bg-red-950/60 border border-red-800 px-3 py-2 text-xs text-red-300">
-                <Trash2 className="w-3.5 h-3.5" /> Clear
-              </button>
-            )}
           </div>
-          <button onClick={handleExtract} disabled={extracting || !images.length} className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-bold text-green-400 disabled:opacity-50">
-            <Sparkles className="w-4 h-4" />
-            {extracting ? 'Extracting...' : 'Extract Questions from Photos'}
-          </button>
+          <p className="text-xs text-slate-400">{images.length} page(s) selected</p>
         </div>
 
-        {message && <div className="rounded-xl bg-slate-800 p-3 text-xs text-green-300">{message}</div>}
+        <button onClick={handleExtract} disabled={extracting || !images.length} className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 py-3.5 text-sm font-extrabold text-slate-950 disabled:opacity-60">
+          <Sparkles className="w-4 h-4" />
+          {extracting ? 'Extracting & Solving...' : 'Extract & Solve with Gemini AI'}
+        </button>
+
+        {message && <div className="rounded-xl bg-slate-800/90 border border-slate-700 p-3 text-center text-xs font-bold text-amber-300">{message}</div>}
       </div>
 
-            {questions.length > 0 && (
+      {questions.length > 0 && (
         <AdminQuestionEditor
           questions={questions}
           setQuestions={setQuestions}
